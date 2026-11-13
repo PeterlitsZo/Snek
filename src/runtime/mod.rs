@@ -1,0 +1,62 @@
+use std::{cell::RefCell, path::Path, rc::Rc};
+
+use anyhow::{Result, anyhow, bail};
+use boa_engine::{Context, Module, Source, builtins::promise::PromiseState, job::JobExecutor};
+use boa_runtime::{Console, DefaultLogger};
+
+mod jobs;
+mod module_loader;
+mod modules;
+
+use jobs::SnekJobExecutor;
+use module_loader::SnekModuleLoader;
+
+// Execute the JavaScript code.
+pub(crate) fn execute(path: &Path, javascript: &str) -> Result<()> {
+    // Build the tokio runtime.
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| anyhow!("Tokio initialization failed: {error}"))?;
+
+    // Build the job excutor.
+    let jobs = Rc::new(SnekJobExecutor::default());
+
+    // Build the context to execute the JavaScript code.
+    let mut context = Context::builder()
+        .module_loader(Rc::new(SnekModuleLoader::default()))
+        .job_executor(jobs.clone())
+        .build()
+        .map_err(|error| anyhow!("runtime initialization failed: {error}"))?;
+
+    // Support the `console` object.
+    Console::register_with_logger(DefaultLogger, &mut context)
+        .map_err(|error| anyhow!("console initialization failed: {error}"))?;
+
+    // Build the module.
+    let module = Module::parse(
+        Source::from_bytes(javascript).with_path(path),
+        None,
+        &mut context,
+    )
+    .map_err(|error| anyhow!("{error}"))?;
+
+    // Loads, links and evaluates this module.
+    let completion = module.load_link_evaluate(&mut context);
+    runtime
+        .block_on(jobs.run_jobs_async(&RefCell::new(&mut context)))
+        .map_err(|error| anyhow!("{error}"))?;
+
+    // Check the state.
+    match completion.state() {
+        PromiseState::Fulfilled(_) => Ok(()),
+        PromiseState::Rejected(error) => {
+            let error = error
+                .to_string(&mut context)
+                .map(|text| text.to_std_string_escaped())
+                .unwrap_or_else(|_| "module evaluation rejected with an unprintable value".into());
+            bail!("{error}")
+        }
+        PromiseState::Pending => bail!("top-level await did not complete: no pending tasks remain"),
+    }
+}

@@ -12,7 +12,7 @@ use clap::{
     about = "A collection of practical utilities with a TypeScript scripting runtime"
 )]
 pub(crate) struct Args {
-    /// TypeScript file to execute (synchronous, no modules)
+    /// TypeScript file to execute.
     #[arg(value_name = "FILE", value_parser = PathBufValueParser::new().try_map(validate_script))]
     pub(crate) script: PathBuf,
 }
