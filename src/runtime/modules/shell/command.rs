@@ -41,11 +41,7 @@ impl Class for ShellCommand {
     fn init(class: &mut ClassBuilder) -> JsResult<()> {
         macro_rules! add_method {
             ($name:literal $fn:ident/$len:literal) => {
-                class.method(
-                    js_string!($name),
-                    $len,
-                    NativeFunction::from_fn_ptr($fn),
-                );
+                class.method(js_string!($name), $len, NativeFunction::from_fn_ptr($fn));
             };
         }
 
@@ -55,6 +51,7 @@ impl Class for ShellCommand {
         add_method!("finally" command_finally/1);
         add_method!("text" command_text/0);
         add_method!("json" command_json/0);
+        add_method!("blob" command_blob/0);
 
         Ok(())
     }
@@ -136,6 +133,10 @@ fn command_text(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResul
 
 fn command_json(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
     read(this, NativeFunction::from_fn_ptr(output::json), context)
+}
+
+fn command_blob(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+    read(this, NativeFunction::from_fn_ptr(output::blob), context)
 }
 
 fn command_then(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {

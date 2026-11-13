@@ -14,6 +14,8 @@ export interface ShellCommand extends PromiseLike<void> {
    * Capture stdout and parse it as JSON; invalid JSON rejects with SyntaxError.
    */
   json<T = unknown>(): Promise<T>;
+  /** Capture stdout as immutable bytes with an empty MIME type. */
+  blob(): Promise<Blob>;
 }
 
 /** Create a command, inserting interpolated values as literal arguments. */
@@ -21,6 +23,19 @@ export declare function $(
   strings: TemplateStringsArray,
   ...values: unknown[]
 ): ShellCommand;
+
+/**
+ * Minimal immutable Blob; accepts an array of parts and snapshots mutable
+ * buffers.
+ */
+export declare class Blob {
+  constructor(parts?: readonly (string | ArrayBuffer | Uint8Array<ArrayBuffer> | Blob)[], options?: { type?: string });
+  readonly size: number;
+  readonly type: string;
+  text(): Promise<string>;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  slice(start?: number, end?: number, contentType?: string): Blob;
+}
 
 /** Minimal UTF-8 Buffer, backed by Uint8Array. */
 export interface Buffer extends Uint8Array<ArrayBuffer> {}
