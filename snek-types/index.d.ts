@@ -1,16 +1,19 @@
 /**
- * Execute a shell template through Rust, inheriting stdin, stdout, and stderr.
- * Currently supports one program and its arguments, without invoking an external shell.
- * Interpolated values are stringified and inserted as literal argument text.
- * Resolves when shell execution succeeds; rejects on invalid syntax or process failure.
- *
- * @example
- * await $`echo ${"Hello World!"}`;
+ * A lazy command that runs once when awaited or consumed with then, catch, or finally.
+ * Repeated waits share the result; execution errors reject the promise.
  */
+export interface ShellCommand extends PromiseLike<void> {
+  catch<TResult = never>(
+    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
+  ): Promise<void | TResult>;
+  finally(onfinally?: (() => void) | null): Promise<void>;
+}
+
+/** Create a command, inserting interpolated values as literal arguments. */
 export declare function $(
   strings: TemplateStringsArray,
   ...values: unknown[]
-): Promise<void>;
+): ShellCommand;
 
 /** Minimal UTF-8 Buffer, backed by Uint8Array. */
 export interface Buffer extends Uint8Array<ArrayBuffer> {}
