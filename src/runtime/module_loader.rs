@@ -32,7 +32,11 @@ impl ModuleLoader for SnekModuleLoader {
 
         // Make the snek module.
         let module = Module::synthetic(
-            &[js_string!("$")],
+            &[
+                js_string!("$"),
+                js_string!("S3Client"),
+                js_string!("Buffer"),
+            ],
             SyntheticModuleInitializer::from_copy_closure(|module, context| {
                 // Build the `$` function.
                 let function = FunctionObjectBuilder::new(
@@ -43,8 +47,16 @@ impl ModuleLoader for SnekModuleLoader {
                 .length(1)
                 .build();
 
-                // Export the functions.
-                module.set_export(&js_string!("$"), function.into())
+                // Build the `Buffer`.
+                let buffer = super::modules::buffer::constructor(context)?;
+
+                // Build the `S3Client`.
+                let s3 = super::modules::s3::constructor(context)?;
+
+                // Export the functions and others.
+                module.set_export(&js_string!("$"), function.into())?;
+                module.set_export(&js_string!("Buffer"), buffer)?;
+                module.set_export(&js_string!("S3Client"), s3)
             }),
             None,
             None,
