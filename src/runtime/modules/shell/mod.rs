@@ -1,4 +1,5 @@
 mod command;
+mod output;
 mod process;
 mod template;
 

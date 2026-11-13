@@ -1,5 +1,6 @@
 /**
- * A lazy command that runs once when awaited or consumed with then, catch, or finally.
+ * A lazy command that runs once when awaited or consumed.
+ *
  * Repeated waits share the result; execution errors reject the promise.
  */
 export interface ShellCommand extends PromiseLike<void> {
@@ -7,6 +8,12 @@ export interface ShellCommand extends PromiseLike<void> {
     onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
   ): Promise<void | TResult>;
   finally(onfinally?: (() => void) | null): Promise<void>;
+  /** Capture stdout as UTF-8 text, preserving trailing newlines. */
+  text(): Promise<string>;
+  /**
+   * Capture stdout and parse it as JSON; invalid JSON rejects with SyntaxError.
+   */
+  json<T = unknown>(): Promise<T>;
 }
 
 /** Create a command, inserting interpolated values as literal arguments. */
