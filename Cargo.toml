@@ -23,7 +23,7 @@ oxc = { version = "0.151.0", features = ["codegen", "semantic", "transformer"] }
 percent-encoding = "2"
 quick-xml = { version = "0.39", features = ["serialize"] }
 serde = { version = "1", features = ["derive"] }
-tokio = { version = "1", features = ["rt", "process", "time", "net", "io-util"] }
+tokio = { version = "1", features = ["rt", "process", "time", "net", "io-util", "sync"] }
 
 [lints.rust]
 unsafe_code = "forbid"

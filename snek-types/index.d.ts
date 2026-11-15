@@ -16,6 +16,8 @@ export interface ShellCommand extends PromiseLike<void> {
   json<T = unknown>(): Promise<T>;
   /** Capture stdout as immutable bytes with an empty MIME type. */
   blob(): Promise<Blob>;
+  /** Stream stdout lines; starts on first consumption, and early exit cancels the process. */
+  lines(): AsyncIterableIterator<string>;
 }
 
 /** Create a command, inserting interpolated values as literal arguments. */
