@@ -4,19 +4,40 @@
  * Repeated waits share the result; execution errors reject the promise.
  */
 export interface ShellCommand extends PromiseLike<void> {
+  /**
+   * Handle completion or failure, returning a Promise for the callback result.
+   */
+  then<TResult1 = void, TResult2 = never>(
+    onfulfilled?: ((value: void) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2>;
+
+  /** Handle execution failure, optionally recovering with a new value. */
   catch<TResult = never>(
     onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null,
   ): Promise<void | TResult>;
+
+  /**
+   * Run after success or failure; preserve the outcome unless the callback
+   * fails.
+   */
   finally(onfinally?: (() => void) | null): Promise<void>;
+
   /** Capture stdout as UTF-8 text, preserving trailing newlines. */
   text(): Promise<string>;
+
   /**
    * Capture stdout and parse it as JSON; invalid JSON rejects with SyntaxError.
    */
   json<T = unknown>(): Promise<T>;
+
   /** Capture stdout as immutable bytes with an empty MIME type. */
   blob(): Promise<Blob>;
-  /** Stream stdout lines; starts on first consumption, and early exit cancels the process. */
+
+  /**
+   * Stream stdout lines; starts on first consumption, and early exit cancels
+   * the process.
+   */
   lines(): AsyncIterableIterator<string>;
 }
 
