@@ -1,5 +1,5 @@
 use boa_engine::{
-    Context, JsArgs, JsData, JsError, JsNativeError, JsResult, JsValue, NativeFunction,
+    Context, JsArgs, JsData, JsError, JsNativeError, JsObject, JsResult, JsValue, NativeFunction,
     class::{Class, ClassBuilder},
     js_string,
     object::builtins::{JsFunction, JsPromise},
@@ -7,7 +7,7 @@ use boa_engine::{
 use boa_gc::{Finalize, Trace};
 
 use super::{
-    output,
+    lines, output,
     process::{OutputMode, run_shell},
 };
 
@@ -21,6 +21,8 @@ struct ShellCommand {
 enum CommandState {
     // Preserve parsing errors until the command is consumed.
     Pending(JsResult<Vec<String>>),
+    // Keep the sole iterator and its process state alive for completion waits.
+    Streaming(JsObject),
     // The promise retains both running and settled execution state.
     Running {
         #[unsafe_ignore_trace]
@@ -52,6 +54,7 @@ impl Class for ShellCommand {
         add_method!("text" command_text/0);
         add_method!("json" command_json/0);
         add_method!("blob" command_blob/0);
+        add_method!("lines" command_lines/0);
 
         Ok(())
     }
@@ -70,6 +73,17 @@ fn execution(this: &JsValue, requested: OutputMode, context: &mut Context) -> Js
     let mut command = object
         .downcast_mut::<ShellCommand>()
         .ok_or_else(invalid_receiver)?;
+
+    if let CommandState::Streaming(iterator) = &command.state {
+        if requested == OutputMode::Capture {
+            return Err(JsNativeError::typ()
+                .with_message("cannot capture output after lines() has selected streaming mode")
+                .into());
+        }
+        let iterator = iterator.clone();
+        drop(command);
+        return lines::completion(&iterator, context);
+    }
 
     // Already running? Just return.
     if let CommandState::Running { mode, promise } = &command.state {
@@ -137,6 +151,24 @@ fn command_json(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResul
 
 fn command_blob(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
     read(this, NativeFunction::from_fn_ptr(output::blob), context)
+}
+
+/// Reserve streaming mode once; the iterator starts the process on first consumption.
+fn command_lines(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+    let object = this
+        .as_object()
+        .ok_or_else(|| JsNativeError::typ().with_message("invalid ShellCommand receiver"))?;
+    let mut command = object
+        .downcast_mut::<ShellCommand>()
+        .ok_or_else(|| JsNativeError::typ().with_message("invalid ShellCommand receiver"))?;
+    let CommandState::Pending(input) = &command.state else {
+        return Err(JsNativeError::typ()
+            .with_message("lines() requires an unconsumed command and allows only one iterator")
+            .into());
+    };
+    let iterator = lines::create(input.clone(), context)?;
+    command.state = CommandState::Streaming(iterator.clone());
+    Ok(iterator.into())
 }
 
 fn command_then(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {

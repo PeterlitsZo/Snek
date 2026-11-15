@@ -1,4 +1,6 @@
 mod command;
+mod line_process;
+mod lines;
 mod output;
 mod process;
 mod template;
