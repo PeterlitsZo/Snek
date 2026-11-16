@@ -1,0 +1,350 @@
+# Snek
+
+\(match lang
+  :zh_CN "Snek 是一系列实用的工具集，并提供了 TypeScript 运行时接口。"
+  :zh_TW "Snek 是一系列實用的工具集，並提供了 TypeScript 執行階段介面。"
+  :ja_JP "Snek は、TypeScript ランタイムインターフェースを備えた実用的なツール集です。"
+  :ko_KR "Snek은 TypeScript 런타임 인터페이스를 제공하는 실용적인 도구 모음입니다."
+  :es_ES """
+    | Snek es una colección de herramientas prácticas que ofrece una interfaz de
+    | ejecución para TypeScript.
+  """
+  :fr_FR """
+    | Snek est un ensemble d’outils pratiques offrant une interface d’exécution
+    | TypeScript.
+  """
+  :de_DE """
+    | Snek ist eine Sammlung praktischer Werkzeuge mit einer
+    | TypeScript-Laufzeitschnittstelle.
+  """
+  :pt_BR """
+    | Snek é uma coleção de ferramentas práticas que oferece uma interface de execução
+    | para TypeScript.
+  """
+  _      """
+    | Snek is a collection of practical tools that provides a TypeScript runtime
+    | interface.
+  """)
+
+\(match lang
+  :zh_CN "对于如下的脚本而言："
+  :zh_TW "以下列腳本為例："
+  :ja_JP "次のスクリプトを例に説明します。"
+  :ko_KR "다음 스크립트를 예로 들어 보겠습니다:"
+  :es_ES "Considera el siguiente script:"
+  :fr_FR "Prenons le script suivant :"
+  :de_DE "Betrachten wir das folgende Skript:"
+  :pt_BR "Considere o seguinte script:"
+  _      "Consider the following script:")
+
+```ts
+import { $ } from "snek";
+
+let output = await $`echo "Hello World"`.text();
+console.log(JSON.stringify(output));
+```
+
+\(match lang
+  :zh_CN """
+    | 它会执行 `echo "Hello World"` 命令，并将标准输出捕获，并放入变量 `output` 中，最
+    | 后你可以使用 `JSON`、`console` 等进一步操作。
+  """
+  :zh_TW """
+    | 它會執行 `echo "Hello World"` 命令，擷取標準輸出並存入變數 `output` 中。接著，你
+    | 可以使用 `JSON`、`console` 等進一步處理。
+  """
+  :ja_JP """
+    | このスクリプトは `echo "Hello World"` コマンドを実行し、標準出力を変数 `output`
+    | に格納します。その後、`JSON` や `console` などでさらに処理できます。
+  """
+  :ko_KR """
+    | 이 스크립트는 `echo "Hello World"` 명령을 실행하고 표준 출력을 캡처하여 `output`
+    | 변수에 저장합니다. 이후 `JSON`, `console` 등을 사용해 추가로 처리할 수 있습니다.
+  """
+  :es_ES """
+    | El script ejecuta el comando `echo "Hello World"`, captura la salida estándar y
+    | la guarda en la variable `output`. Después, puedes usar `JSON`, `console` y
+    | otras herramientas para procesarla.
+  """
+  :fr_FR """
+    | Ce script exécute la commande `echo "Hello World"`, capture la sortie standard
+    | et la stocke dans la variable `output`. Vous pouvez ensuite utiliser `JSON`,
+    | `console` ou d’autres outils pour la traiter.
+  """
+  :de_DE """
+    | Das Skript führt den Befehl `echo "Hello World"` aus, erfasst die
+    | Standardausgabe und speichert sie in der Variablen `output`. Anschließend kannst
+    | du sie mit `JSON`, `console` und anderen Werkzeugen weiterverarbeiten.
+  """
+  :pt_BR """
+    | O script executa o comando `echo "Hello World"`, captura a saída padrão e a
+    | armazena na variável `output`. Depois, você pode usar `JSON`, `console` e outras
+    | ferramentas para processá-la.
+  """
+  _      """
+    | The script runs the `echo "Hello World"` command, captures its standard output,
+    | and stores it in the `output` variable. You can then use `JSON`, `console`, and
+    | other tools to process it further.
+  """)
+
+\(match lang
+  :zh_CN "## 参考"
+  :zh_TW "## 參考"
+  :ja_JP "## リファレンス"
+  :ko_KR "## 레퍼런스"
+  :es_ES "## Referencia"
+  :fr_FR "## Référence"
+  :de_DE "## Referenz"
+  :pt_BR "## Referência"
+  _      "## Reference")
+
+\(match lang
+  :zh_CN "### 执行命令"
+  :zh_TW "### 執行命令"
+  :ja_JP "### コマンドの実行"
+  :ko_KR "### 명령 실행"
+  :es_ES "### Ejecutar comandos"
+  :fr_FR "### Exécuter des commandes"
+  :de_DE "### Befehle ausführen"
+  :pt_BR "### Executar comandos"
+  _      "### Running commands")
+
+\(match lang
+  :zh_CN "直接执行命令，或用 `.text()` 拿到输出："
+  :zh_TW "直接執行命令，或用 `.text()` 取得輸出："
+  :ja_JP "コマンドを実行するか、`.text()` で出力を取得します。"
+  :ko_KR "명령을 실행하거나 `.text()`로 출력을 가져옵니다:"
+  :es_ES "Ejecuta un comando o usa `.text()` para obtener su salida:"
+  :fr_FR "Exécutez une commande ou récupérez sa sortie avec `.text()` :"
+  :de_DE "Führe einen Befehl aus oder lies seine Ausgabe mit `.text()`:"
+  :pt_BR "Execute um comando ou use `.text()` para obter a saída:"
+  _      "Run a command, or use `.text()` to get its output:")
+
+```ts
+import { $ } from "snek";
+
+await $`echo "Hello World"`;
+
+let name = "Snek";
+let output = await $`echo ${name}`.text();
+console.log(output); // "Snek\n"
+```
+
+\(match lang
+  :zh_CN "命令输出 JSON 时，可以直接解析："
+  :zh_TW "命令輸出 JSON 時，可以直接解析："
+  :ja_JP "コマンドが JSON を出力する場合は、そのまま解析できます。"
+  :ko_KR "명령이 JSON을 출력하면 바로 파싱할 수 있습니다:"
+  :es_ES "Si el comando devuelve JSON, puedes analizarlo directamente:"
+  :fr_FR "Si la commande produit du JSON, vous pouvez le parser directement :"
+  :de_DE "Wenn der Befehl JSON ausgibt, kannst du es direkt parsen:"
+  :pt_BR "Se o comando produzir JSON, você pode interpretá-lo diretamente:"
+  _      "If a command outputs JSON, parse it directly:")
+
+```ts
+import { $ } from "snek";
+
+let data = await $`echo '{"name":"Snek"}'`.json<{ name: string }>();
+console.log(data.name); // "Snek"
+```
+
+\(match lang
+  :zh_CN "逐行读取输出："
+  :zh_TW "逐行讀取輸出："
+  :ja_JP "出力を一行ずつ読み取ります。"
+  :ko_KR "출력을 한 줄씩 읽습니다:"
+  :es_ES "Lee la salida línea por línea:"
+  :fr_FR "Lisez la sortie ligne par ligne :"
+  :de_DE "Lies die Ausgabe zeilenweise:"
+  :pt_BR "Leia a saída linha por linha:"
+  _      "Read the output line by line:")
+
+```ts
+import { $ } from "snek";
+
+for await (let line of $`printf 'first\nsecond\n'`.lines()) {
+  console.log(line); // "first", then "second"
+}
+```
+
+\(match lang
+  :zh_CN "### 处理二进制数据"
+  :zh_TW "### 處理二進位資料"
+  :ja_JP "### バイナリデータの操作"
+  :ko_KR "### 바이너리 데이터 처리"
+  :es_ES "### Trabajar con datos binarios"
+  :fr_FR "### Manipuler des données binaires"
+  :de_DE "### Binärdaten verarbeiten"
+  :pt_BR "### Trabalhar com dados binários"
+  _      "### Working with binary data")
+
+\(match lang
+  :zh_CN "`Buffer` 可以按字节修改；`Blob` 保存创建时的数据，不随原始 buffer 改变："
+  :zh_TW "`Buffer` 可以逐位元組修改；`Blob` 保留建立時的資料，不隨原始 buffer 改變："
+  :ja_JP """
+    | `Buffer` はバイト単位で変更できます。`Blob` は作成時のデータを保持し、元の
+    | buffer を変更しても影響を受けません。
+  """
+  :ko_KR """
+    | `Buffer`는 바이트 단위로 수정할 수 있습니다. `Blob`은 생성 시점의 데이터를
+    | 보관하므로 원본 buffer를 수정해도 바뀌지 않습니다:
+  """
+  :es_ES """
+    | Puedes modificar un `Buffer` byte a byte. Un `Blob` conserva los datos de su
+    | creación, aunque cambie el buffer original:
+  """
+  :fr_FR """
+    | Un `Buffer` est modifiable octet par octet. Un `Blob` conserve les données de sa
+    | création, même si le buffer original change :
+  """
+  :de_DE """
+    | Ein `Buffer` lässt sich byteweise ändern. Ein `Blob` behält die Daten vom
+    | Zeitpunkt seiner Erstellung, auch wenn sich der ursprüngliche Buffer ändert:
+  """
+  :pt_BR """
+    | Um `Buffer` pode ser alterado byte a byte. Um `Blob` mantém os dados da criação,
+    | mesmo que o buffer original seja alterado:
+  """
+  _      """
+    | You can modify a `Buffer` byte by byte. A `Blob` keeps the data from when it was
+    | created, even if the original buffer changes:
+  """)
+
+```ts
+import { Buffer, Blob } from "snek";
+
+let bytes = Buffer.from("Hello");
+let blob = new Blob([bytes], { type: "text/plain" });
+
+bytes[0] = 104;
+
+console.log(await new Blob([bytes]).text()); // "hello"
+console.log(await blob.text()); // "Hello"
+console.log(blob.size); // 5
+console.log(blob.type); // "text/plain"
+console.log(await blob.slice(0, 2).text()); // "He"
+```
+
+\(match lang
+  :zh_CN "### 访问 S3"
+  :zh_TW "### 存取 S3"
+  :ja_JP "### S3 へのアクセス"
+  :ko_KR "### S3 접근"
+  :es_ES "### Acceder a S3"
+  :fr_FR "### Accéder à S3"
+  :de_DE "### Auf S3 zugreifen"
+  :pt_BR "### Acessar o S3"
+  _      "### Accessing S3")
+
+\(match lang
+  :zh_CN "填入自己的凭据和存储桶名称，就可以读写对象："
+  :zh_TW "填入自己的憑證和儲存桶名稱，就可以讀寫物件："
+  :ja_JP "自分の認証情報とバケット名を設定すると、オブジェクトを読み書きできます。"
+  :ko_KR "자신의 자격 증명과 버킷 이름을 입력하면 객체를 읽고 쓸 수 있습니다:"
+  :es_ES "Introduce tus credenciales y el nombre del bucket para leer y escribir objetos:"
+  :fr_FR "Renseignez vos identifiants et le nom du bucket pour lire et écrire des objets :"
+  :de_DE """
+    | Trage deine Zugangsdaten und den Bucket-Namen ein, um Objekte zu lesen und zu
+    | schreiben:
+  """
+  :pt_BR "Preencha suas credenciais e o nome do bucket para ler e gravar objetos:"
+  _      "Enter your credentials and bucket name to read and write objects:")
+
+```ts
+import { S3Client } from "snek";
+
+let s3 = new S3Client({
+  accessKeyId: "YOUR_ACCESS_KEY_ID",
+  secretAccessKey: "YOUR_SECRET_ACCESS_KEY",
+  bucket: "my-bucket",
+  region: "us-east-1",
+});
+
+let file = s3.file("hello.txt");
+await file.write("Hello World", { type: "text/plain" });
+console.log(await file.text()); // "Hello World"
+
+let url = s3.presign("hello.txt", {
+  method: "GET",
+  expiresIn: 3600,
+});
+console.log(url);
+```
+
+\(match lang
+  :zh_CN "这里生成的下载链接一小时后过期。将 `method` 改成 `\"PUT\"` 可生成上传链接。"
+  :zh_TW "這裡產生的下載連結一小時後到期。將 `method` 改成 `\"PUT\"` 可產生上傳連結。"
+  :ja_JP """
+    | このダウンロードリンクは 1 時間後に期限切れになります。`method` を `"PUT"` にす
+    | ると、アップロードリンクを生成できます。
+  """
+  :ko_KR """
+    | 이 다운로드 링크는 한 시간 후 만료됩니다. `method`를 `"PUT"`으로 바꾸면 업로드
+    | 링크를 생성합니다.
+  """
+  :es_ES """
+    | El enlace de descarga caduca en una hora. Cambia `method` a `"PUT"` para generar
+    | un enlace de subida.
+  """
+  :fr_FR """
+    | Ce lien de téléchargement expire après une heure. Passez `method` à `"PUT"` pour
+    | générer un lien d’envoi.
+  """
+  :de_DE """
+    | Der Download-Link läuft nach einer Stunde ab. Setze `method` auf `"PUT"`, um
+    | einen Upload-Link zu erzeugen.
+  """
+  :pt_BR """
+    | O link de download expira em uma hora. Altere `method` para `"PUT"` para gerar
+    | um link de upload.
+  """
+  _      """
+    | The download link expires in one hour. Change `method` to `"PUT"` to generate an
+    | upload link.
+  """)
+
+\(match lang
+  :zh_CN "连接兼容 S3 的服务时，在客户端配置中添加 `endpoint`。例如 Cloudflare R2："
+  :zh_TW "連接相容 S3 的服務時，在用戶端設定中加入 `endpoint`。例如 Cloudflare R2："
+  :ja_JP """
+    | S3 互換サービスに接続するには、クライアント設定に `endpoint` を追加します。
+    | Cloudflare R2 の場合：
+  """
+  :ko_KR """
+    | S3 호환 서비스에 연결하려면 클라이언트 설정에 `endpoint`를 추가합니다.
+    | Cloudflare R2의 예입니다:
+  """
+  :es_ES """
+    | Para conectar con un servicio compatible con S3, añade `endpoint` a la
+    | configuración del cliente. Por ejemplo, para Cloudflare R2:
+  """
+  :fr_FR """
+    | Pour un service compatible S3, ajoutez `endpoint` à la configuration du client.
+    | Par exemple, pour Cloudflare R2 :
+  """
+  :de_DE """
+    | Für einen S3-kompatiblen Dienst ergänzt du `endpoint` in der
+    | Client-Konfiguration. Zum Beispiel für Cloudflare R2:
+  """
+  :pt_BR """
+    | Para conectar a um serviço compatível com S3, adicione `endpoint` à configuração
+    | do cliente. Por exemplo, para o Cloudflare R2:
+  """
+  _      """
+    | To connect to an S3-compatible service, add `endpoint` to the client
+    | configuration. For example, for Cloudflare R2:
+  """)
+
+```ts
+import { S3Client } from "snek";
+
+let s3 = new S3Client({
+  accessKeyId: "YOUR_ACCESS_KEY_ID",
+  secretAccessKey: "YOUR_SECRET_ACCESS_KEY",
+  bucket: "my-bucket",
+  region: "auto",
+  endpoint: "https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com",
+});
+
+console.log(await s3.file("hello.txt").text());
+```
