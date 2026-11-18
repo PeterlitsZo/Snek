@@ -121,3 +121,4 @@ let s3 = new S3Client({
 
 console.log(await s3.file("hello.txt").text());
 ```
+

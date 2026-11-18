@@ -3,8 +3,6 @@ function newfilename() {
         -- $1 $2
 }
 
-cargo build
-
 for LANG in zh_CN zh_TW ja_JP ko_KR es_ES fr_FR de_DE pt_BR en_US; do
     for FILENAME in $(ls docs); do
         if [[ $FILENAME == *".lingua" ]]; then
