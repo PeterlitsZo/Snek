@@ -11,7 +11,7 @@ aws-credential-types = "1.2.14"
 aws-sigv4 = "1.4.5"
 boa_engine = { version = "0.22.0", default-features = false }
 boa_gc = "0.22.0"
-boa_runtime = { version = "0.22.0", default-features = false }
+boa_runtime = { version = "0.22.0", default-features = false, features = ["fetch", "url"] }
 bytes = "1"
 clap = { version = "4.5", features = ["derive"] }
 http = "1"
@@ -22,6 +22,8 @@ indoc = "2.0.8"
 oxc = { version = "0.151.0", features = ["codegen", "semantic", "transformer"] }
 percent-encoding = "2"
 quick-xml = { version = "0.39", features = ["serialize"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt", "process", "time", "net", "io-util", "sync"] }
 

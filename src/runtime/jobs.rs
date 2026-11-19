@@ -59,9 +59,9 @@ impl JobExecutor for SnekJobExecutor {
     async fn run_jobs_async(self: Rc<Self>, context: &RefCell<&mut Context>) -> JsResult<()> {
         let mut pending: Vec<PendingJob<'_>> = Vec::new();
         let mut finalizers: Vec<PendingJob<'_>> = Vec::new();
+
         let result = poll_fn(|cx| {
             self.waker.borrow_mut().replace(cx.waker().clone());
-            // Release the queue borrow before invoking JS: callbacks can enqueue jobs.
             let queued = std::mem::take(&mut *self.queue.borrow_mut());
             for job in queued {
                 match job {
@@ -130,6 +130,7 @@ impl JobExecutor for SnekJobExecutor {
                         Poll::Ready(result) => {
                             drop(jobs.remove(index));
                             result?;
+                            cx.waker().wake_by_ref();
                         }
                         Poll::Pending => index += 1,
                     }
@@ -150,8 +151,10 @@ impl JobExecutor for SnekJobExecutor {
             }
         })
         .await;
+
         self.waker.borrow_mut().take();
         self.queue.borrow_mut().clear();
+
         result
     }
 }
