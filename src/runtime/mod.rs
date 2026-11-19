@@ -2,8 +2,9 @@ use std::{cell::RefCell, path::Path, rc::Rc};
 
 use anyhow::{Result, anyhow, bail};
 use boa_engine::{Context, Module, Source, builtins::promise::PromiseState, job::JobExecutor};
-use boa_runtime::{Console, DefaultLogger};
+use boa_runtime::extensions::{ConsoleExtension, FetchExtension};
 
+mod fetch;
 mod jobs;
 mod module_loader;
 mod modules;
@@ -29,9 +30,15 @@ pub(crate) fn execute(path: &Path, javascript: &str) -> Result<()> {
         .build()
         .map_err(|error| anyhow!("runtime initialization failed: {error}"))?;
 
-    // Support the `console` object.
-    Console::register_with_logger(DefaultLogger, &mut context)
-        .map_err(|error| anyhow!("console initialization failed: {error}"))?;
+    boa_runtime::register(
+        (
+            ConsoleExtension::default(),
+            FetchExtension(fetch::HttpFetcher::new()?),
+        ),
+        None,
+        &mut context,
+    )
+    .map_err(|error| anyhow!("runtime extensions initialization failed: {error}"))?;
 
     // Build the module.
     let module = Module::parse(
