@@ -115,3 +115,45 @@ let s3 = new S3Client({
 
 console.log(await s3.file("hello.txt").text());
 ```
+
+### Argumentos de linha de comando
+
+Você pode obter os argumentos de linha de comando com `argv`.
+
+```ts
+import { argv } from "snek";
+
+console.log(argv); // [ SNEK_PATH, SCRIPT_PATH, "--hello", "world" ]
+```
+
+Oferecemos `Cli` para analisar os argumentos de linha de comando. Sua API se inspira em
+[cac](https://github.com/cacjs/cac) e pode ser usada assim:
+
+```ts
+import { Cli } from "snek";
+
+const cli = new Cli();
+cli.option('--type [type]', 'Choose a project type', {
+  default: 'node',
+});
+cli.option('--name <name>', 'Provide your name');
+
+// Display help message when `-h` or `--help` appears.
+cli.help();
+
+// Display version number when `-v` or `--version` appears.
+cli.version('0.0.0');
+
+const parsed = cli.parse();
+
+console.log(parsed);
+```
+
+Depois, você pode interagir com o script assim.
+
+```sh
+snek app.ts --type web --name Alice
+snek app.ts --help
+snek app.ts --version
+snek app.ts -- --name
+```

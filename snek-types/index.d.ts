@@ -121,3 +121,40 @@ export interface S3Error extends Error {
   code?: string;
   requestId?: string;
 }
+
+/**
+ * Process arguments: absolute executable path, resolved script path, then user
+ * arguments.
+ */
+export declare const argv: string[];
+
+export interface CliOptionConfig {
+  default?: string | boolean;
+}
+
+export interface CliParseResult {
+  args: string[];
+  options: Record<string, string | boolean | undefined>;
+}
+
+/** A small command-line parser with an API inspired by cac. */
+export declare class Cli {
+  constructor();
+  args: string[];
+  options: Record<string, string | boolean | undefined>;
+  option(flags: string, description: string, config?: CliOptionConfig): this;
+  /**
+   * Register `-h` / `--help`. Output happens during parse; the script
+   * continues.
+   */
+  help(): this;
+  /**
+   * Register `-v` / `--version`. Output happens during parse; the script
+   * continues.
+   */
+  version(value: string): this;
+  /**
+   * Parse script arguments.
+   */
+  parse(args?: string[]): CliParseResult;
+}

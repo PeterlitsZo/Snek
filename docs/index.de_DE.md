@@ -116,3 +116,45 @@ let s3 = new S3Client({
 
 console.log(await s3.file("hello.txt").text());
 ```
+
+### Kommandozeilenargumente
+
+Mit `argv` kannst du die Kommandozeilenargumente abrufen.
+
+```ts
+import { argv } from "snek";
+
+console.log(argv); // [ SNEK_PATH, SCRIPT_PATH, "--hello", "world" ]
+```
+
+Wir stellen `Cli` zum Parsen von Kommandozeilenargumenten bereit. Die API orientiert sich an
+[cac](https://github.com/cacjs/cac). So kannst du sie verwenden:
+
+```ts
+import { Cli } from "snek";
+
+const cli = new Cli();
+cli.option('--type [type]', 'Choose a project type', {
+  default: 'node',
+});
+cli.option('--name <name>', 'Provide your name');
+
+// Display help message when `-h` or `--help` appears.
+cli.help();
+
+// Display version number when `-v` or `--version` appears.
+cli.version('0.0.0');
+
+const parsed = cli.parse();
+
+console.log(parsed);
+```
+
+Anschließend kannst du das Skript so aufrufen.
+
+```sh
+snek app.ts --type web --name Alice
+snek app.ts --help
+snek app.ts --version
+snek app.ts -- --name
+```

@@ -348,3 +348,107 @@ let s3 = new S3Client({
 
 console.log(await s3.file("hello.txt").text());
 ```
+
+\(match lang
+  :zh_CN "### 命令行参数"
+  :zh_TW "### 命令列參數"
+  :ja_JP "### コマンドライン引数"
+  :ko_KR "### 명령줄 인수"
+  :es_ES "### Argumentos de línea de comandos"
+  :fr_FR "### Arguments de ligne de commande"
+  :de_DE "### Kommandozeilenargumente"
+  :pt_BR "### Argumentos de linha de comando"
+  _ "### Command-line arguments")
+
+\(match lang
+  :zh_CN "你可以通过 `argv` 来获取命令行参数。"
+  :zh_TW "你可以透過 `argv` 取得命令列參數。"
+  :ja_JP "`argv` でコマンドライン引数を取得できます。"
+  :ko_KR "`argv`로 명령줄 인수를 가져올 수 있습니다."
+  :es_ES "Puedes obtener los argumentos de línea de comandos mediante `argv`."
+  :fr_FR "Vous pouvez accéder aux arguments de ligne de commande avec `argv`."
+  :de_DE "Mit `argv` kannst du die Kommandozeilenargumente abrufen."
+  :pt_BR "Você pode obter os argumentos de linha de comando com `argv`."
+  _ "You can access command-line arguments through `argv`.")
+
+```ts
+import { argv } from "snek";
+
+console.log(argv); // [ SNEK_PATH, SCRIPT_PATH, "--hello", "world" ]
+```
+
+\(match lang
+  :zh_CN """
+    | 我们提供 `Cli` 用于解析命令行参数。它的 API 参考
+    | [cac](https://github.com/cacjs/cac)，你可以这样使用它：
+  """
+  :zh_TW """
+    | 我們提供 `Cli` 用於解析命令列參數。它的 API 參考
+    | [cac](https://github.com/cacjs/cac)，你可以這樣使用它：
+  """
+  :ja_JP """
+    | コマンドライン引数を解析するために `Cli` を提供しています。API は
+    | [cac](https://github.com/cacjs/cac) を参考にしており、次のように使用できます。
+  """
+  :ko_KR """
+    | 명령줄 인수를 파싱하는 `Cli`를 제공합니다. API는
+    | [cac](https://github.com/cacjs/cac)를 참고했으며 다음과 같이 사용할 수 있습니다:
+  """
+  :es_ES """
+    | Ofrecemos `Cli` para analizar los argumentos de línea de comandos. Su API se basa en
+    | [cac](https://github.com/cacjs/cac) y puedes usarla así:
+  """
+  :fr_FR """
+    | Nous proposons `Cli` pour analyser les arguments de ligne de commande. Son API s’inspire de
+    | [cac](https://github.com/cacjs/cac). Voici comment l’utiliser :
+  """
+  :de_DE """
+    | Wir stellen `Cli` zum Parsen von Kommandozeilenargumenten bereit. Die API orientiert sich an
+    | [cac](https://github.com/cacjs/cac). So kannst du sie verwenden:
+  """
+  :pt_BR """
+    | Oferecemos `Cli` para analisar os argumentos de linha de comando. Sua API se inspira em
+    | [cac](https://github.com/cacjs/cac) e pode ser usada assim:
+  """
+  _ """
+    | We provide `Cli` to parse command-line arguments. Its API is inspired by
+    | [cac](https://github.com/cacjs/cac). Here is how to use it:
+  """)
+
+```ts
+import { Cli } from "snek";
+
+const cli = new Cli();
+cli.option('--type [type]', 'Choose a project type', {
+  default: 'node',
+});
+cli.option('--name <name>', 'Provide your name');
+
+// Display help message when `-h` or `--help` appears.
+cli.help();
+
+// Display version number when `-v` or `--version` appears.
+cli.version('0.0.0');
+
+const parsed = cli.parse();
+
+console.log(parsed);
+```
+
+\(match lang
+  :zh_CN "之后我们可以这样和它交互。"
+  :zh_TW "接著我們可以這樣與它互動。"
+  :ja_JP "次のように実行できます。"
+  :ko_KR "이제 다음과 같이 실행할 수 있습니다."
+  :es_ES "Después, puedes interactuar con el script así."
+  :fr_FR "Vous pouvez ensuite utiliser le script ainsi."
+  :de_DE "Anschließend kannst du das Skript so aufrufen."
+  :pt_BR "Depois, você pode interagir com o script assim."
+  _ "You can then interact with the script like this.")
+
+```sh
+snek app.ts --type web --name Alice
+snek app.ts --help
+snek app.ts --version
+snek app.ts -- --name
+```

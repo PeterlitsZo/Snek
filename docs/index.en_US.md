@@ -115,3 +115,45 @@ let s3 = new S3Client({
 
 console.log(await s3.file("hello.txt").text());
 ```
+
+### Command-line arguments
+
+You can access command-line arguments through `argv`.
+
+```ts
+import { argv } from "snek";
+
+console.log(argv); // [ SNEK_PATH, SCRIPT_PATH, "--hello", "world" ]
+```
+
+We provide `Cli` to parse command-line arguments. Its API is inspired by
+[cac](https://github.com/cacjs/cac). Here is how to use it:
+
+```ts
+import { Cli } from "snek";
+
+const cli = new Cli();
+cli.option('--type [type]', 'Choose a project type', {
+  default: 'node',
+});
+cli.option('--name <name>', 'Provide your name');
+
+// Display help message when `-h` or `--help` appears.
+cli.help();
+
+// Display version number when `-v` or `--version` appears.
+cli.version('0.0.0');
+
+const parsed = cli.parse();
+
+console.log(parsed);
+```
+
+You can then interact with the script like this.
+
+```sh
+snek app.ts --type web --name Alice
+snek app.ts --help
+snek app.ts --version
+snek app.ts -- --name
+```

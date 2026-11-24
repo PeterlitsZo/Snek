@@ -113,3 +113,45 @@ let s3 = new S3Client({
 
 console.log(await s3.file("hello.txt").text());
 ```
+
+### 명령줄 인수
+
+`argv`로 명령줄 인수를 가져올 수 있습니다.
+
+```ts
+import { argv } from "snek";
+
+console.log(argv); // [ SNEK_PATH, SCRIPT_PATH, "--hello", "world" ]
+```
+
+명령줄 인수를 파싱하는 `Cli`를 제공합니다. API는
+[cac](https://github.com/cacjs/cac)를 참고했으며 다음과 같이 사용할 수 있습니다:
+
+```ts
+import { Cli } from "snek";
+
+const cli = new Cli();
+cli.option('--type [type]', 'Choose a project type', {
+  default: 'node',
+});
+cli.option('--name <name>', 'Provide your name');
+
+// Display help message when `-h` or `--help` appears.
+cli.help();
+
+// Display version number when `-v` or `--version` appears.
+cli.version('0.0.0');
+
+const parsed = cli.parse();
+
+console.log(parsed);
+```
+
+이제 다음과 같이 실행할 수 있습니다.
+
+```sh
+snek app.ts --type web --name Alice
+snek app.ts --help
+snek app.ts --version
+snek app.ts -- --name
+```
