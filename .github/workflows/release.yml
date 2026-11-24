@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: snek-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            asset: linux-amd64
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            asset: linux-arm64
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            asset: macos-amd64
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            asset: macos-arm64
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Rust
+        run: |
+          rustup default stable
+          rustup target add '${{ matrix.target }}'
+      - uses: mlugg/setup-zig@v2
+        if: runner.os == 'Linux'
+        with:
+          version: 0.14.0
+      - uses: taiki-e/install-action@v2
+        if: runner.os == 'Linux'
+        with:
+          tool: cargo-zigbuild
+      - name: Build
+        shell: bash
+        run: |
+          if [ '${{ runner.os }}' = Linux ]; then
+            cargo zigbuild --locked --release --target '${{ matrix.target }}' --bin snek
+          else
+            cargo build --locked --release --target '${{ matrix.target }}' --bin snek
+          fi
+          'target/${{ matrix.target }}/release/snek' --version
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          tar -C 'target/${{ matrix.target }}/release' -czf 'dist/snek-${{ matrix.asset }}.tar.gz' snek
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-${{ matrix.asset }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+      - name: Validate release tag
+        run: |
+          python3 - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('Cargo.toml').read_text())['package']['version']
+          if os.environ['RELEASE_TAG'] != 'v' + version:
+              raise SystemExit('Release tag must match the Cargo.toml version')
+          PY
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum ./*.tar.gz > SHA256SUMS
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install Wrangler
+        run: npm install --global wrangler@4
+      - name: Upload release
+        run: |
+          for file in dist/*.tar.gz dist/SHA256SUMS; do
+            wrangler r2 object put "peterlits/snek/release/${RELEASE_TAG}/$(basename "$file")" \
+              --remote --file "$file"
+          done
+      - name: Publish stable installer and latest version
+        run: |
+          case "$RELEASE_TAG" in
+            *-*) exit 0 ;;
+          esac
+          wrangler r2 object put peterlits/snek/install.sh --remote \
+            --file scripts/install.sh --content-type 'text/plain; charset=utf-8' --cache-control 'no-cache'
+          printf '%s\n' "$RELEASE_TAG" > dist/LATEST
+          wrangler r2 object put peterlits/snek/release/LATEST --remote \
+            --file dist/LATEST --content-type text/plain --cache-control 'no-cache'
