@@ -4,6 +4,8 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0-alpha.3] - 2026-11-25
+
 ### Added
 
 - Extend S3 with conditional uploads, metadata, configurable request timeouts,
