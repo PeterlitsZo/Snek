@@ -16,6 +16,16 @@ Das Skript führt den Befehl `echo "Hello World"` aus, erfasst die
 Standardausgabe und speichert sie in der Variablen `output`. Anschließend kannst
 du sie mit `JSON`, `console` und anderen Werkzeugen weiterverarbeiten.
 
+## Installation
+
+Führe den folgenden Befehl aus, um Snek zu installieren:
+
+```bash
+curl -fsSL https://peterlits.net/snek/install.sh | bash
+```
+
+Standardmäßig wird Snek unter `~/.local/bin/` installiert.
+
 ## Referenz
 
 ### Befehle ausführen

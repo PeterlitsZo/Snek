@@ -14,6 +14,16 @@ console.log(JSON.stringify(output));
 이 스크립트는 `echo "Hello World"` 명령을 실행하고 표준 출력을 캡처하여 `output`
 변수에 저장합니다. 이후 `JSON`, `console` 등을 사용해 추가로 처리할 수 있습니다.
 
+## 설치
+
+다음 명령을 실행하여 설치합니다:
+
+```bash
+curl -fsSL https://peterlits.net/snek/install.sh | bash
+```
+
+기본적으로 `~/.local/bin/`에 설치됩니다.
+
 ## 레퍼런스
 
 ### 명령 실행

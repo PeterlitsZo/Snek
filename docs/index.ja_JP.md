@@ -14,6 +14,16 @@ console.log(JSON.stringify(output));
 このスクリプトは `echo "Hello World"` コマンドを実行し、標準出力を変数 `output`
 に格納します。その後、`JSON` や `console` などでさらに処理できます。
 
+## インストール
+
+次のコマンドを実行してインストールします。
+
+```bash
+curl -fsSL https://peterlits.net/snek/install.sh | bash
+```
+
+デフォルトでは、`~/.local/bin/` にインストールされます。
+
 ## リファレンス
 
 ### コマンドの実行

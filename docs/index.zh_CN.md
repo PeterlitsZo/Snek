@@ -14,6 +14,16 @@ console.log(JSON.stringify(output));
 它会执行 `echo "Hello World"` 命令，并将标准输出捕获，并放入变量 `output` 中，最
 后你可以使用 `JSON`、`console` 等进一步操作。
 
+## 安装
+
+执行如下的命令完成安装：
+
+```bash
+curl -fsSL https://peterlits.net/snek/install.sh | bash
+```
+
+默认情况下，它会安装到 `~/.local/bin/` 下。
+
 ## 参考
 
 ### 执行命令

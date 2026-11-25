@@ -16,6 +16,16 @@ O script executa o comando `echo "Hello World"`, captura a saída padrão e a
 armazena na variável `output`. Depois, você pode usar `JSON`, `console` e outras
 ferramentas para processá-la.
 
+## Instalação
+
+Execute o seguinte comando para instalar o Snek:
+
+```bash
+curl -fsSL https://peterlits.net/snek/install.sh | bash
+```
+
+Por padrão, o Snek é instalado em `~/.local/bin/`.
+
 ## Referência
 
 ### Executar comandos

@@ -88,6 +88,43 @@ console.log(JSON.stringify(output));
   """)
 
 \(match lang
+  :zh_CN "## 安装"
+  :zh_TW "## 安裝"
+  :ja_JP "## インストール"
+  :ko_KR "## 설치"
+  :es_ES "## Instalación"
+  :fr_FR "## Installation"
+  :de_DE "## Installation"
+  :pt_BR "## Instalação"
+  _      "## Installation")
+
+\(match lang
+  :zh_CN "执行如下的命令完成安装："
+  :zh_TW "執行以下命令完成安裝："
+  :ja_JP "次のコマンドを実行してインストールします。"
+  :ko_KR "다음 명령을 실행하여 설치합니다:"
+  :es_ES "Ejecuta el siguiente comando para instalar Snek:"
+  :fr_FR "Exécutez la commande suivante pour installer Snek :"
+  :de_DE "Führe den folgenden Befehl aus, um Snek zu installieren:"
+  :pt_BR "Execute o seguinte comando para instalar o Snek:"
+  _      "Run the following command to install Snek:")
+
+```bash
+curl -fsSL https://peterlits.net/snek/install.sh | bash
+```
+
+\(match lang
+  :zh_CN "默认情况下，它会安装到 `~/.local/bin/` 下。"
+  :zh_TW "預設情況下，它會安裝到 `~/.local/bin/` 下。"
+  :ja_JP "デフォルトでは、`~/.local/bin/` にインストールされます。"
+  :ko_KR "기본적으로 `~/.local/bin/`에 설치됩니다."
+  :es_ES "De forma predeterminada, se instala en `~/.local/bin/`."
+  :fr_FR "Par défaut, Snek est installé dans `~/.local/bin/`."
+  :de_DE "Standardmäßig wird Snek unter `~/.local/bin/` installiert."
+  :pt_BR "Por padrão, o Snek é instalado em `~/.local/bin/`."
+  _      "By default, Snek is installed in `~/.local/bin/`.")
+
+\(match lang
   :zh_CN "## 参考"
   :zh_TW "## 參考"
   :ja_JP "## リファレンス"
