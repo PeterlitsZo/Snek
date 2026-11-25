@@ -153,9 +153,21 @@ export interface CliParseResult {
   options: Record<string, string | boolean | undefined>;
 }
 
+export interface CliParseConfig {
+  run?: boolean;
+}
+
+export interface CliCommand {
+  option(flags: string, description: string, config?: CliOptionConfig): this;
+  alias(name: string): this;
+  action(callback: (...args: any[]) => any): this;
+}
+
 /** A small command-line parser with an API inspired by cac. */
 export declare class Cli {
   constructor();
+  command(declaration: string, description?: string): CliCommand;
+  runMatchedCommand(): any;
   args: string[];
   options: Record<string, string | boolean | undefined>;
   option(flags: string, description: string, config?: CliOptionConfig): this;
@@ -172,7 +184,7 @@ export declare class Cli {
   /**
    * Parse script arguments.
    */
-  parse(args?: string[]): CliParseResult;
+  parse(args?: string[], config?: CliParseConfig): CliParseResult;
 }
 
 declare global {

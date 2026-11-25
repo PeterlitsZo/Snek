@@ -67,7 +67,9 @@ pub(crate) fn execute(
 
     // Check the state.
     match completion.state() {
-        PromiseState::Fulfilled(_) => Ok(()),
+        PromiseState::Fulfilled(_) => {
+            modules::cli::check_actions(&context).map_err(|error| anyhow!("{error}"))
+        }
         PromiseState::Rejected(error) => {
             let error = error
                 .to_string(&mut context)

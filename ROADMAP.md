@@ -10,3 +10,4 @@
 - [x] Support File I/O.
 - [x] Support the `.env()` method for `$`.
 - [x] Support the global `process` object.
+- [x] Support the command.

@@ -6,6 +6,9 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Support CAC-style CLI commands, aliases, positional arguments, command options,
+  and synchronous or asynchronous actions.
+
 - Add lazy `file()` references with asynchronous text, JSON, binary, and Blob
   reads, overwrite and append writes, and existence checks.
 
