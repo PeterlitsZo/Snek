@@ -1,8 +1,11 @@
+use std::collections::BTreeMap;
+
 use boa_engine::{
     Context, JsArgs, JsData, JsError, JsNativeError, JsObject, JsResult, JsValue, NativeFunction,
     class::{Class, ClassBuilder},
     js_string,
     object::builtins::{JsFunction, JsPromise},
+    property::PropertyKey,
 };
 use boa_gc::{Finalize, Trace};
 
@@ -57,9 +60,73 @@ impl Class for ShellCommand {
         add_method!("json" command_json/0);
         add_method!("blob" command_blob/0);
         add_method!("lines" command_lines/0);
+        add_method!("env" command_env/1);
 
         Ok(())
     }
+}
+
+fn command_env(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+    let invalid_receiver = || JsNativeError::typ().with_message("invalid ShellCommand receiver");
+    let consumed = || JsNativeError::typ().with_message("env() requires an unconsumed command");
+    let object = this.as_object().ok_or_else(invalid_receiver)?;
+    {
+        let command = object
+            .downcast_ref::<ShellCommand>()
+            .ok_or_else(invalid_receiver)?;
+        if !matches!(command.state, CommandState::Pending(_)) {
+            return Err(consumed().into());
+        }
+    }
+
+    let argument = args.get_or_undefined(0);
+    let values = argument.as_object().ok_or_else(|| {
+        JsNativeError::typ().with_message("env() requires an object of string keys and values")
+    })?;
+    // Property access can execute JavaScript. Hold no command borrow until the
+    // complete snapshot is validated, then check again in case it was consumed.
+    let mut variables = BTreeMap::new();
+    for key in values.own_property_keys(context)? {
+        let name = match &key {
+            PropertyKey::String(name) => name.to_std_string().map_err(|_| {
+                JsNativeError::typ().with_message("env() keys must contain valid Unicode")
+            })?,
+            PropertyKey::Index(index) => index.get().to_string(),
+            PropertyKey::Symbol(_) => {
+                return Err(JsNativeError::typ()
+                    .with_message("env() keys must be strings")
+                    .into());
+            }
+        };
+        if name.is_empty() || name.contains(['=', '\0']) {
+            return Err(JsNativeError::typ()
+                .with_message("env() keys must be nonempty and cannot contain '=' or NUL")
+                .into());
+        }
+        let value = values.get(key, context)?;
+        let value = value
+            .as_string()
+            .ok_or_else(|| JsNativeError::typ().with_message("env() values must be strings"))?
+            .to_std_string()
+            .map_err(|_| {
+                JsNativeError::typ().with_message("env() values must contain valid Unicode")
+            })?;
+        if value.contains('\0') {
+            return Err(JsNativeError::typ()
+                .with_message("env() values cannot contain NUL")
+                .into());
+        }
+        variables.insert(name, value);
+    }
+
+    let mut command = object
+        .downcast_mut::<ShellCommand>()
+        .ok_or_else(invalid_receiver)?;
+    if !matches!(command.state, CommandState::Pending(_)) {
+        return Err(consumed().into());
+    }
+    command.environment.variables.extend(variables);
+    Ok(this.clone())
 }
 
 /// Start once in the `requested` mode, then reuse the same result or error.

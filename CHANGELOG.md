@@ -8,6 +8,7 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Add npm package `@peterlits/snek`.
 - Support `cd PATH` in `$` commands.
+- Support command-specific environment overrides with `.env()` on `$` commands.
 
 ### Changed
 

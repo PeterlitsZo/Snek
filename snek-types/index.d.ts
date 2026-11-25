@@ -5,6 +5,13 @@
  */
 export interface ShellCommand extends PromiseLike<void> {
   /**
+   * Merge environment overrides for this command, preserving inherited variables.
+   * Snapshots all own properties; keys and values must be strings.
+   * Throws TypeError for invalid input or after the command is consumed.
+   */
+  env(values: Record<string, string>): this;
+
+  /**
    * Handle completion or failure, returning a Promise for the callback result.
    */
   then<TResult1 = void, TResult2 = never>(

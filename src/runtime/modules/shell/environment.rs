@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     io,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -6,16 +7,18 @@ use std::{
 
 use tokio::process::Command;
 
-/// Working directory shared by commands in one script, never by the host process.
+/// Shared script directory and independently cloned command environment overrides.
 #[derive(Clone)]
 pub(in crate::runtime) struct ShellEnvironment {
     cwd: Arc<Mutex<PathBuf>>,
+    pub(super) variables: BTreeMap<String, String>,
 }
 
 impl ShellEnvironment {
     pub(in crate::runtime) fn new() -> io::Result<Self> {
         Ok(Self {
             cwd: Arc::new(Mutex::new(std::env::current_dir()?)),
+            variables: BTreeMap::new(),
         })
     }
 
@@ -58,7 +61,10 @@ impl ShellEnvironment {
                 path.to_path_buf()
             };
         let mut command = Command::new(executable);
-        command.args(&words[1..]).current_dir(&*cwd);
+        command
+            .args(&words[1..])
+            .current_dir(&*cwd)
+            .envs(&self.variables);
         Ok(Some(command))
     }
 }
