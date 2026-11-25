@@ -18,6 +18,7 @@ impl HttpFetcher {
         let _ = rustls::crypto::ring::default_provider().install_default();
         Ok(Self {
             client: reqwest::Client::builder()
+                .dns_resolver(std::sync::Arc::new(super::dns::DnsResolver::default()))
                 .timeout(Duration::from_secs(60))
                 .build()?,
         })

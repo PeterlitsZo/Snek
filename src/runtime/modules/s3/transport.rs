@@ -19,6 +19,8 @@ use hyper_util::{
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use serde::Deserialize;
 
+use crate::runtime::dns::DnsResolver;
+
 const KEY_ENCODE: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'-')
     .remove(b'_')
@@ -26,7 +28,7 @@ const KEY_ENCODE: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'~')
     .remove(b'/');
 const TIMEOUT: Duration = Duration::from_secs(60);
-type HttpClient = Client<HttpsConnector<HttpConnector>, Full<Bytes>>;
+type HttpClient = Client<HttpsConnector<HttpConnector<DnsResolver>>, Full<Bytes>>;
 
 pub(super) struct Config {
     pub access_key: String,
@@ -141,11 +143,13 @@ impl Transport {
             uri.scheme_str().unwrap(),
             uri.authority().unwrap()
         );
+        let mut http = HttpConnector::new_with_resolver(DnsResolver::default());
+        http.enforce_http(false);
         let connector = HttpsConnectorBuilder::new()
             .with_webpki_roots()
             .https_or_http()
             .enable_http1()
-            .build();
+            .wrap_connector(http);
         let client = Client::builder(TokioExecutor::new())
             .retry_canceled_requests(false)
             .build(connector);

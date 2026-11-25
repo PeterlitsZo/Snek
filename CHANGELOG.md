@@ -4,6 +4,12 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Use Hickory pure-Rust DNS resolution for fetch and S3 instead of system
+  getaddrinfo, avoiding musl resolver limitations for internal hostnames.
+  Use system DNS configuration without falling back to public DNS servers.
+
 ## [0.2.0-alpha.2] - 2026-11-25
 
 ### Changed

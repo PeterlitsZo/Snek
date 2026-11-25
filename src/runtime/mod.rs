@@ -4,6 +4,7 @@ use anyhow::{Result, anyhow, bail};
 use boa_engine::{Context, Module, Source, builtins::promise::PromiseState, job::JobExecutor};
 use boa_runtime::extensions::{ConsoleExtension, FetchExtension};
 
+mod dns;
 mod fetch;
 mod jobs;
 mod module_loader;

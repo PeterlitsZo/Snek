@@ -14,3 +14,5 @@
 - [ ] Support the `exit` command for `$`.
 - [x] The `process` object should be export by `snek` but not a global object.
 - [x] Support the command.
+
+- [x] Use pure-Rust DNS resolution for fetch and S3.
