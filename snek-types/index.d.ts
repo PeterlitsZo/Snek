@@ -1,9 +1,18 @@
+export interface ShellOutput {
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+}
+
 /**
  * A lazy command that runs once when awaited or consumed.
  *
  * Repeated waits share the result; execution errors reject the promise.
  */
 export interface ShellCommand extends PromiseLike<void> {
+  /** Capture both streams; nonzero exits resolve, execution errors reject. */
+  nothrow(): Promise<ShellOutput>;
+
   /**
    * Merge environment overrides for this command, preserving inherited variables.
    * Snapshots all own properties; keys and values must be strings.

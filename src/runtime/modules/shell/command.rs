@@ -57,6 +57,7 @@ impl Class for ShellCommand {
         add_method!("catch" command_catch/1);
         add_method!("finally" command_finally/1);
         add_method!("text" command_text/0);
+        add_method!("nothrow" command_nothrow/0);
         add_method!("json" command_json/0);
         add_method!("blob" command_blob/0);
         add_method!("lines" command_lines/0);
@@ -144,7 +145,7 @@ fn execution(this: &JsValue, requested: OutputMode, context: &mut Context) -> Js
         .ok_or_else(invalid_receiver)?;
 
     if let CommandState::Streaming(iterator) = &command.state {
-        if requested == OutputMode::Capture {
+        if requested != OutputMode::Terminal {
             return Err(JsNativeError::typ()
                 .with_message("cannot capture output after lines() has selected streaming mode")
                 .into());
@@ -157,9 +158,11 @@ fn execution(this: &JsValue, requested: OutputMode, context: &mut Context) -> Js
     // Already running? Just return.
     if let CommandState::Running { mode, promise } = &command.state {
         // Too late to capture the output.
-        if requested == OutputMode::Capture && *mode != OutputMode::Capture {
+        if (requested == OutputMode::Capture && *mode == OutputMode::Terminal)
+            || (requested == OutputMode::FullCapture && *mode != OutputMode::FullCapture)
+        {
             return Err(JsNativeError::typ()
-                .with_message("cannot capture output after terminal execution has started")
+                .with_message("cannot capture requested output after another execution mode has been selected")
                 .into());
         }
         return Ok(promise.clone());
@@ -195,9 +198,14 @@ fn execution(this: &JsValue, requested: OutputMode, context: &mut Context) -> Js
 /// Wait for execution, resolving to undefined and preserving any process error.
 fn completion(this: &JsValue, context: &mut Context) -> JsResult<JsPromise> {
     let promise = execution(this, OutputMode::Terminal, context)?;
-    let discard = NativeFunction::from_fn_ptr(|_, _, _| Ok(JsValue::undefined()))
-        .to_js_function(context.realm());
-    promise.then(Some(discard), None, context)
+    let check = NativeFunction::from_fn_ptr(|this, args, context| {
+        if !args.get_or_undefined(0).is_undefined() {
+            output::checked(this, args, context)?;
+        }
+        Ok(JsValue::undefined())
+    })
+    .to_js_function(context.realm());
+    promise.then(Some(check), None, context)
 }
 
 /// Convert shared stdout bytes after successful execution, without rerunning
@@ -207,7 +215,18 @@ fn read(this: &JsValue, convert: NativeFunction, context: &mut Context) -> JsRes
         Ok(promise) => promise,
         Err(error) => return Ok(JsPromise::reject(error, context)?.into()),
     };
+    let check = NativeFunction::from_fn_ptr(output::checked).to_js_function(context.realm());
+    let promise = promise.then(Some(check), None, context)?;
     let convert = convert.to_js_function(context.realm());
+    Ok(promise.then(Some(convert), None, context)?.into())
+}
+
+fn command_nothrow(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+    let promise = match execution(this, OutputMode::FullCapture, context) {
+        Ok(promise) => promise,
+        Err(error) => return Ok(JsPromise::reject(error, context)?.into()),
+    };
+    let convert = NativeFunction::from_fn_ptr(output::nothrow).to_js_function(context.realm());
     Ok(promise.then(Some(convert), None, context)?.into())
 }
 
