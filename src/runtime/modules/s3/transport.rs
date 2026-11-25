@@ -27,7 +27,7 @@ const KEY_ENCODE: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'.')
     .remove(b'~')
     .remove(b'/');
-const TIMEOUT: Duration = Duration::from_secs(60);
+
 type HttpClient = Client<HttpsConnector<HttpConnector<DnsResolver>>, Full<Bytes>>;
 
 pub(super) struct Config {
@@ -37,6 +37,7 @@ pub(super) struct Config {
     pub bucket: String,
     pub region: String,
     pub endpoint: String,
+    pub timeout_ms: u64,
 }
 
 pub(super) struct Transport {
@@ -55,7 +56,7 @@ pub(super) struct Error {
 }
 
 impl Error {
-    fn new(message: &'static str) -> Self {
+    pub(super) fn new(message: &'static str) -> Self {
         Self {
             message,
             status: None,
@@ -222,7 +223,8 @@ impl Transport {
     }
 
     pub fn presign(&self, key: &str, method: &str, expires: u64) -> Result<String, Error> {
-        if !matches!(method, "GET" | "PUT") || !(1..=604800).contains(&expires) {
+        if !matches!(method, "GET" | "PUT" | "HEAD" | "DELETE") || !(1..=604800).contains(&expires)
+        {
             return Err(Error::new("invalid presign method or expiration"));
         }
         let url = self.url(key);
@@ -247,56 +249,80 @@ impl Transport {
         Ok(request.uri().to_string())
     }
 
-    pub async fn get(&self, key: &str) -> Result<Bytes, Error> {
-        let request = Request::get(self.url(key))
-            .body(Bytes::new())
-            .map_err(|error| Error::new("invalid S3 request headers").with_source(error))?;
-        self.send(request).await
-    }
-
-    pub async fn put(&self, key: &str, body: Bytes, content_type: &str) -> Result<(), Error> {
-        let request = Request::put(self.url(key))
-            .header("content-type", content_type)
+    pub async fn request(
+        &self,
+        key: &str,
+        method: &str,
+        body: Bytes,
+        headers: Vec<(String, String)>,
+        timeout_ms: Option<u64>,
+    ) -> Result<(http::HeaderMap, Bytes), Error> {
+        let mut request = Request::builder().method(method).uri(self.url(key));
+        for (name, value) in headers {
+            request = request.header(name, value);
+        }
+        let request = request
             .body(body)
             .map_err(|error| Error::new("invalid S3 request headers").with_source(error))?;
-        self.send(request).await?;
-        Ok(())
-    }
-
-    async fn send(&self, request: Request<Bytes>) -> Result<Bytes, Error> {
         let request = self.sign_request(request)?;
-        tokio::time::timeout(TIMEOUT, async {
-            let response = self
-                .client
-                .request(request)
-                .await
-                .map_err(|error| Error::new("S3 network request failed").with_source(error))?;
-            let status = response.status();
-            let request_id = response
-                .headers()
-                .get("x-amz-request-id")
-                .and_then(|v| v.to_str().ok())
-                .map(str::to_owned);
-            let bytes = response
-                .into_body()
-                .collect()
-                .await
-                .map_err(|error| Error::new("could not read S3 response").with_source(error))?
-                .to_bytes();
-            if !status.is_success() {
-                let details: ServiceError =
-                    quick_xml::de::from_reader(bytes.as_ref()).unwrap_or_default();
-                return Err(Error {
-                    message: "S3 request failed",
-                    status: Some(status.as_u16()),
-                    code: details.code,
-                    request_id: request_id.or(details.request_id),
-                    source: None,
-                });
-            }
-            Ok(bytes)
+        let mut observed_status = None;
+        let mut observed_id = None;
+        let result = tokio::time::timeout(
+            Duration::from_millis(timeout_ms.unwrap_or(self.config.timeout_ms)),
+            async {
+                let response =
+                    self.client.request(request).await.map_err(|error| {
+                        Error::new("S3 network request failed").with_source(error)
+                    })?;
+                let status = response.status();
+                let headers = response.headers().clone();
+                observed_status = Some(status.as_u16());
+                observed_id = headers
+                    .get("x-amz-request-id")
+                    .and_then(|v| v.to_str().ok())
+                    .map(str::to_owned);
+                let mut body = response.into_body();
+                let mut bytes = Vec::new();
+                while let Some(frame) = body.frame().await {
+                    let frame = frame.map_err(|error| {
+                        Error::new("could not read S3 response").with_source(error)
+                    })?;
+                    if let Ok(data) = frame.into_data() {
+                        if !status.is_success() {
+                            let remaining = 65536usize.saturating_sub(bytes.len());
+                            bytes.extend_from_slice(&data[..data.len().min(remaining)]);
+                            if bytes.len() == 65536 {
+                                break;
+                            }
+                        } else {
+                            bytes.extend_from_slice(&data);
+                        }
+                    }
+                }
+                if !status.is_success() {
+                    let details: ServiceError =
+                        quick_xml::de::from_reader(bytes.as_slice()).unwrap_or_default();
+                    return Err(Error {
+                        message: "S3 request failed",
+                        status: Some(status.as_u16()),
+                        code: details.code,
+                        request_id: observed_id.clone().or(details.request_id),
+                        source: None,
+                    });
+                }
+                Ok((headers, Bytes::from(bytes)))
+            },
+        )
+        .await;
+        let result = result.unwrap_or_else(|error| {
+            let mut failure = Error::new("S3 request timed out").with_source(error);
+            failure.code = Some("TimeoutError".into());
+            Err(failure)
+        });
+        result.map_err(|mut error| {
+            error.status = error.status.or(observed_status);
+            error.request_id = error.request_id.or(observed_id);
+            error
         })
-        .await
-        .map_err(|error| Error::new("S3 request timed out").with_source(error))?
     }
 }

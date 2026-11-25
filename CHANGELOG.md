@@ -4,6 +4,11 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Extend S3 with conditional uploads, metadata, configurable request timeouts,
+  HEAD statistics, existence checks, deletion, binary helpers, and file presigning.
+
 ### Fixed
 
 - Use Hickory pure-Rust DNS resolution for fetch and S3 instead of system

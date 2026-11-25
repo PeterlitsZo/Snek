@@ -6,11 +6,11 @@ use boa_engine::{
     Context, JsArgs, JsData, JsError, JsNativeError, JsObject, JsResult, JsValue, NativeFunction,
     class::{Class, ClassBuilder},
     js_string,
-    object::builtins::{JsPromise, JsUint8Array},
+    object::builtins::{JsDate, JsPromise, JsUint8Array},
 };
 use boa_gc::{Finalize, Trace};
 
-use super::binary;
+use super::{binary, blob};
 use transport::{Config, Transport};
 
 #[derive(Trace, Finalize, JsData)]
@@ -149,6 +149,7 @@ impl Class for S3Client {
             bucket,
             region,
             endpoint,
+            timeout_ms: timeout(&options.clone().into(), context)?.unwrap_or(60000),
         })
         .map_err(type_error)?;
         Ok(Self {
@@ -170,35 +171,69 @@ impl Class for S3Client {
             js_string!("presign"),
             1,
             NativeFunction::from_fn_ptr(|this, args, context| {
-                let transport = client(this)?;
-                let key = key(args.get_or_undefined(0))?;
-                let mut method = "GET".to_owned();
-                let mut expires = 86400;
-                if !args.get_or_undefined(1).is_undefined() {
-                    let options = options(args.get_or_undefined(1))?;
-                    method = optional_string(&options, "method", context)?.unwrap_or(method);
-                    let value = options.get(js_string!("expiresIn"), context)?;
-                    if !value.is_undefined() {
-                        let n = value.as_number().ok_or_else(|| {
-                            type_error("expiresIn must be an integer number of seconds")
-                        })?;
-                        if !n.is_finite() || n.fract() != 0.0 || !(1.0..=604800.0).contains(&n) {
-                            return Err(JsNativeError::range()
-                                .with_message("expiresIn must be an integer from 1 to 604800")
-                                .into());
-                        }
-                        expires = n as u64;
-                    }
-                }
-                if !matches!(method.as_str(), "GET" | "PUT") {
-                    return Err(type_error("presign method must be GET or PUT"));
-                }
-                match transport.presign(&key, &method, expires) {
-                    Ok(url) => Ok(js_string!(url).into()),
-                    Err(error) => Err(service_error(error, context)?),
-                }
+                presign(
+                    &S3File {
+                        transport: client(this)?,
+                        key: key(args.get_or_undefined(0))?,
+                    },
+                    args.get_or_undefined(1),
+                    context,
+                )
             }),
         );
+        class.method(
+            js_string!("write"),
+            2,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                let target = (|| {
+                    Ok(S3File {
+                        transport: client(this)?,
+                        key: key(args.get_or_undefined(0))?,
+                    })
+                })();
+                operation(target, "write", &args[args.len().min(1)..], context)
+            }),
+        );
+        class.method(
+            js_string!("stat"),
+            1,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                let target = (|| {
+                    Ok(S3File {
+                        transport: client(this)?,
+                        key: key(args.get_or_undefined(0))?,
+                    })
+                })();
+                operation(target, "stat", &args[args.len().min(1)..], context)
+            }),
+        );
+        class.method(
+            js_string!("exists"),
+            1,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                let target = (|| {
+                    Ok(S3File {
+                        transport: client(this)?,
+                        key: key(args.get_or_undefined(0))?,
+                    })
+                })();
+                operation(target, "exists", &args[args.len().min(1)..], context)
+            }),
+        );
+        class.method(
+            js_string!("delete"),
+            1,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                let target = (|| {
+                    Ok(S3File {
+                        transport: client(this)?,
+                        key: key(args.get_or_undefined(0))?,
+                    })
+                })();
+                operation(target, "delete", &args[args.len().min(1)..], context)
+            }),
+        );
+
         Ok(())
     }
 }
@@ -214,56 +249,309 @@ impl Class for S3File {
         class.method(
             js_string!("text"),
             0,
-            NativeFunction::from_fn_ptr(|this, _, context| read(this, ReadAs::Text, context)),
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "text", args, context)
+            }),
         );
         class.method(
             js_string!("json"),
             0,
-            NativeFunction::from_fn_ptr(|this, _, context| read(this, ReadAs::Json, context)),
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "json", args, context)
+            }),
         );
         class.method(
             js_string!("arrayBuffer"),
             0,
-            NativeFunction::from_fn_ptr(|this, _, context| {
-                read(this, ReadAs::ArrayBuffer, context)
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "arrayBuffer", args, context)
             }),
         );
-        class.method(js_string!("write"), 1, NativeFunction::from_fn_ptr(write));
+        class.method(
+            js_string!("bytes"),
+            0,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "bytes", args, context)
+            }),
+        );
+        class.method(
+            js_string!("blob"),
+            0,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "blob", args, context)
+            }),
+        );
+        class.method(
+            js_string!("write"),
+            1,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "write", args, context)
+            }),
+        );
+        class.method(
+            js_string!("stat"),
+            0,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "stat", args, context)
+            }),
+        );
+        class.method(
+            js_string!("exists"),
+            0,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "exists", args, context)
+            }),
+        );
+        class.method(
+            js_string!("delete"),
+            0,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                operation(file(this), "delete", args, context)
+            }),
+        );
+        class.method(
+            js_string!("presign"),
+            0,
+            NativeFunction::from_fn_ptr(|this, args, context| {
+                presign(&file(this)?, args.get_or_undefined(0), context)
+            }),
+        );
         Ok(())
     }
 }
 
-enum ReadAs {
-    Text,
-    Json,
-    ArrayBuffer,
+fn timeout(value: &JsValue, context: &mut Context) -> JsResult<Option<u64>> {
+    if value.is_undefined() {
+        return Ok(None);
+    }
+    let value = options(value)?.get(js_string!("timeoutMs"), context)?;
+    if value.is_undefined() {
+        return Ok(None);
+    }
+    let n = value
+        .as_number()
+        .ok_or_else(|| type_error("timeoutMs must be a positive safe integer"))?;
+    if !n.is_finite() || n.fract() != 0.0 || !(1.0..=9007199254740991.0).contains(&n) {
+        return Err(type_error("timeoutMs must be a positive safe integer"));
+    }
+    Ok(Some(n as u64))
 }
 
-fn read(this: &JsValue, format: ReadAs, context: &mut Context) -> JsResult<JsValue> {
-    let file = match file(this) {
-        Ok(file) => file,
+fn presign(file: &S3File, value: &JsValue, context: &mut Context) -> JsResult<JsValue> {
+    let mut method = "GET".to_owned();
+    let mut expires = 86400;
+    if !value.is_undefined() {
+        let opts = options(value)?;
+        method = optional_string(&opts, "method", context)?.unwrap_or(method);
+        let value = opts.get(js_string!("expiresIn"), context)?;
+        if !value.is_undefined() {
+            let n = value
+                .as_number()
+                .ok_or_else(|| type_error("expiresIn must be an integer"))?;
+            if !n.is_finite() || n.fract() != 0.0 || !(1.0..=604800.0).contains(&n) {
+                return Err(JsNativeError::range()
+                    .with_message("expiresIn must be an integer from 1 to 604800")
+                    .into());
+            }
+            expires = n as u64;
+        }
+    }
+    if !matches!(method.as_str(), "GET" | "PUT" | "HEAD" | "DELETE") {
+        return Err(type_error("invalid presign method"));
+    }
+    file.transport
+        .presign(&file.key, &method, expires)
+        .map(|url| js_string!(url).into())
+        .map_err(|error| service_error(error, context).unwrap_or_else(|error| error))
+}
+
+fn write_headers(value: &JsValue, context: &mut Context) -> JsResult<Vec<(String, String)>> {
+    let mut headers = vec![("content-type".into(), "application/octet-stream".into())];
+    if value.is_undefined() {
+        return Ok(headers);
+    }
+    let opts = options(value)?;
+    for (name, header) in [
+        ("type", "content-type"),
+        ("ifNoneMatch", "if-none-match"),
+        ("contentEncoding", "content-encoding"),
+        ("contentDisposition", "content-disposition"),
+        ("cacheControl", "cache-control"),
+    ] {
+        if let Some(value) = optional_string(&opts, name, context)? {
+            if value.is_empty()
+                || !value.bytes().all(|b| (32..=126).contains(&b))
+                || (name == "ifNoneMatch" && value != "*")
+            {
+                return Err(type_error(format!("invalid {name}")));
+            }
+            headers.retain(|(key, _)| key != header);
+            headers.push((header.into(), value));
+        }
+    }
+    let metadata = opts.get(js_string!("metadata"), context)?;
+    if !metadata.is_undefined() {
+        let metadata = options(&metadata)?;
+        let mut names = std::collections::BTreeSet::new();
+        for property in metadata.own_property_keys(context)? {
+            let name = match &property {
+                boa_engine::property::PropertyKey::String(name) => name
+                    .to_std_string()
+                    .map_err(|_| type_error("invalid metadata key"))?,
+                boa_engine::property::PropertyKey::Index(index) => index.get().to_string(),
+                _ => return Err(type_error("metadata keys must be strings")),
+            }
+            .to_ascii_lowercase();
+            if name.is_empty()
+                || !name
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"-_".contains(&b))
+                || !names.insert(name.clone())
+            {
+                return Err(type_error("invalid or duplicate metadata key"));
+            }
+            let value = string(&metadata.get(property, context)?, "metadata value")?;
+            if !value.bytes().all(|b| (32..=126).contains(&b)) {
+                return Err(type_error("metadata values must be printable ASCII"));
+            }
+            headers.push((format!("x-amz-meta-{name}"), value));
+        }
+    }
+    Ok(headers)
+}
+
+fn operation(
+    target: JsResult<S3File>,
+    operation: &'static str,
+    args: &[JsValue],
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let input = (|| {
+        let file = target?;
+        let opts = args.get_or_undefined(if operation == "write" { 1 } else { 0 });
+        let timeout = timeout(opts, context)?;
+        let (bytes, headers) = if operation == "write" {
+            (
+                blob::part_bytes(args.get_or_undefined(0), context)?,
+                write_headers(opts, context)?,
+            )
+        } else {
+            (Vec::new(), Vec::new())
+        };
+        Ok::<_, JsError>((file, timeout, bytes, headers))
+    })();
+    let (file, timeout, bytes, headers) = match input {
+        Ok(input) => input,
         Err(error) => return Ok(JsPromise::reject(error, context)?.into()),
     };
+    let length = bytes.len();
     Ok(JsPromise::from_async_fn(
         async move |context| {
-            let result = file.transport.get(&file.key).await;
-            let context = &mut context.borrow_mut();
-            let bytes = match result {
-                Ok(bytes) => bytes,
-                Err(error) => return Err(service_error(error, context)?),
+            let method = match operation {
+                "write" => "PUT",
+                "stat" | "exists" => "HEAD",
+                "delete" => "DELETE",
+                _ => "GET",
             };
-            match format {
-                ReadAs::ArrayBuffer => binary::array_buffer(&bytes, context),
-                ReadAs::Text => Ok(js_string!(String::from_utf8_lossy(&bytes).as_ref()).into()),
-                ReadAs::Json => {
-                    let text = js_string!(String::from_utf8_lossy(&bytes).as_ref());
+            let result = file
+                .transport
+                .request(&file.key, method, bytes.into(), headers, timeout)
+                .await;
+            let context = &mut context.borrow_mut();
+            let (headers, bytes) = match result {
+                Ok(result) => result,
+                Err(error)
+                    if error.status == Some(404)
+                        && error.message == "S3 request failed"
+                        && matches!(operation, "exists" | "delete") =>
+                {
+                    return Ok(if operation == "exists" {
+                        false.into()
+                    } else {
+                        JsValue::undefined()
+                    });
+                }
+                Err(error) => {
+                    let error = service_error(error, context)?;
+                    let object = error
+                        .clone()
+                        .into_opaque(context)?
+                        .as_object()
+                        .expect("S3Error is an object");
+                    object.set(
+                        js_string!("operation"),
+                        js_string!(operation),
+                        true,
+                        context,
+                    )?;
+                    object.set(
+                        js_string!("key"),
+                        js_string!(file.key.as_str()),
+                        true,
+                        context,
+                    )?;
+                    return Err(error);
+                }
+            };
+            match operation {
+                "write" => Ok(JsValue::from(length)),
+                "delete" => Ok(JsValue::undefined()),
+                "exists" => Ok(true.into()),
+                "stat" => match stat(&headers, context) {
+                    Ok(value) => Ok(value),
+                    Err(_) => {
+                        let mut error = transport::Error::new("invalid S3 HEAD response");
+                        error.code = Some("ProtocolError".into());
+                        error.status = Some(200);
+                        error.request_id = headers
+                            .get("x-amz-request-id")
+                            .and_then(|v| v.to_str().ok())
+                            .map(str::to_owned);
+                        let error = service_error(error, context)?;
+                        let object = error
+                            .clone()
+                            .into_opaque(context)?
+                            .as_object()
+                            .expect("S3Error is an object");
+                        object.set(
+                            js_string!("operation"),
+                            js_string!(operation),
+                            true,
+                            context,
+                        )?;
+                        object.set(
+                            js_string!("key"),
+                            js_string!(file.key.as_str()),
+                            true,
+                            context,
+                        )?;
+                        Err(error)
+                    }
+                },
+                "arrayBuffer" => binary::array_buffer(&bytes, context),
+                "bytes" => Ok(JsUint8Array::from_iter(bytes.iter().copied(), context)?.into()),
+                "blob" => blob::from_typed_bytes(
+                    bytes.to_vec(),
+                    headers
+                        .get("content-type")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("")
+                        .to_ascii_lowercase(),
+                    context,
+                ),
+                "json" => {
                     let json = context.intrinsics().objects().json();
                     let parse = json.get(js_string!("parse"), context)?;
                     parse
                         .as_callable()
                         .ok_or_else(|| type_error("JSON.parse is not callable"))?
-                        .call(&json.into(), &[text.into()], context)
+                        .call(
+                            &json.into(),
+                            &[js_string!(String::from_utf8_lossy(&bytes).as_ref()).into()],
+                            context,
+                        )
                 }
+                _ => Ok(js_string!(String::from_utf8_lossy(&bytes).as_ref()).into()),
             }
         },
         context,
@@ -271,49 +559,72 @@ fn read(this: &JsValue, format: ReadAs, context: &mut Context) -> JsResult<JsVal
     .into())
 }
 
-fn write(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
-    // All input reads and copies happen now, before the async job is queued.
-    let input = (|| {
-        let file = file(this)?;
-        let data = args.get_or_undefined(0);
-        let bytes = if let Some(text) = data.as_string() {
-            text.to_std_string_lossy().into_bytes()
-        } else {
-            let object = data
-                .as_object()
-                .ok_or_else(|| type_error("write expects a string or Uint8Array"))?;
-            let view = JsUint8Array::from_object(object)
-                .map_err(|_| type_error("write expects a string or Uint8Array"))?;
-            binary::view_bytes(&view, context)?
-        };
-        let content_type = if args.get_or_undefined(1).is_undefined() {
-            None
-        } else {
-            optional_string(&options(args.get_or_undefined(1))?, "type", context)?
-        }
-        .unwrap_or_else(|| "application/octet-stream".into());
-        if content_type.is_empty() || !content_type.bytes().all(|b| (32..=126).contains(&b)) {
-            return Err(type_error(
-                "type must be a nonempty ASCII HTTP header value",
-            ));
-        }
-        Ok((file, bytes, content_type))
-    })();
-    let (file, bytes, content_type) = match input {
-        Ok(input) => input,
-        Err(error) => return Ok(JsPromise::reject(error, context)?.into()),
+fn stat(headers: &http::HeaderMap, context: &mut Context) -> JsResult<JsValue> {
+    let invalid = || JsNativeError::error().with_message("invalid S3 HEAD response");
+    let required = |name: &str| {
+        headers
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .ok_or_else(invalid)
     };
-    let length = bytes.len();
-    Ok(JsPromise::from_async_fn(
-        async move |context| match file
-            .transport
-            .put(&file.key, bytes.into(), &content_type)
-            .await
-        {
-            Ok(()) => Ok(JsValue::from(length)),
-            Err(error) => Err(service_error(error, &mut context.borrow_mut())?),
-        },
+    let length = required("content-length")?;
+    if length.is_empty() || !length.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(invalid().into());
+    }
+    let size: u64 = length.parse().map_err(|_| invalid())?;
+    if size > 9007199254740991 {
+        return Err(invalid().into());
+    }
+    let etag = required("etag")?;
+    if etag.len() < 2 || !etag.starts_with('"') || !etag.ends_with('"') {
+        return Err(invalid().into());
+    }
+    let modified = httpdate::parse_http_date(required("last-modified")?).map_err(|_| invalid())?;
+    let millis = match modified.duration_since(std::time::UNIX_EPOCH) {
+        Ok(duration) => duration.as_secs_f64() * 1000.0,
+        Err(error) => -error.duration().as_secs_f64() * 1000.0,
+    };
+    let date = JsDate::new(context);
+    date.set_time(millis, context)?;
+    let result = JsObject::with_object_proto(context.intrinsics());
+    result.set(js_string!("size"), size as f64, true, context)?;
+    result.set(js_string!("etag"), js_string!(etag), true, context)?;
+    result.set(js_string!("lastModified"), date, true, context)?;
+    result.set(
+        js_string!("type"),
+        js_string!(
+            headers
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("")
+        ),
+        true,
         context,
-    )
-    .into())
+    )?;
+    let metadata = JsObject::with_null_proto();
+    for (name, value) in headers {
+        if let Some(name) = name.as_str().strip_prefix("x-amz-meta-") {
+            metadata.create_data_property_or_throw(
+                js_string!(name),
+                js_string!(value.to_str().map_err(|_| invalid())?),
+                context,
+            )?;
+        }
+    }
+    result.set(js_string!("metadata"), metadata, true, context)?;
+    for (header, name) in [
+        ("content-encoding", "contentEncoding"),
+        ("content-disposition", "contentDisposition"),
+        ("cache-control", "cacheControl"),
+    ] {
+        if let Some(value) = headers.get(header) {
+            result.set(
+                js_string!(name),
+                js_string!(value.to_str().map_err(|_| invalid())?),
+                true,
+                context,
+            )?;
+        }
+    }
+    Ok(result.into())
 }

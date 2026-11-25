@@ -16,3 +16,5 @@
 - [x] Support the command.
 
 - [x] Use pure-Rust DNS resolution for fetch and S3.
+
+- [x] Extend S3 with conditional writes, metadata, HEAD, deletion, and request timeouts.

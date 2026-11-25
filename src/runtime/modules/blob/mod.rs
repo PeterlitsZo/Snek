@@ -48,11 +48,19 @@ pub(in crate::runtime) fn constructor(context: &mut Context) -> JsResult<JsValue
 }
 
 pub(super) fn from_bytes(bytes: Vec<u8>, context: &mut Context) -> JsResult<JsValue> {
+    from_typed_bytes(bytes, String::new(), context)
+}
+
+pub(super) fn from_typed_bytes(
+    bytes: Vec<u8>,
+    media_type: String,
+    context: &mut Context,
+) -> JsResult<JsValue> {
     constructor(context)?;
     Ok(Blob::from_data(
         Blob {
             bytes: bytes.into(),
-            media_type: String::new(),
+            media_type,
         },
         context,
     )?
@@ -72,7 +80,7 @@ fn normalize_type(value: &JsValue, context: &mut Context) -> JsResult<String> {
 }
 
 /// Copy mutable buffers and views, honoring their visible byte range.
-fn part_bytes(value: &JsValue, context: &mut Context) -> JsResult<Vec<u8>> {
+pub(super) fn part_bytes(value: &JsValue, context: &mut Context) -> JsResult<Vec<u8>> {
     if let Some(text) = value.as_string() {
         return Ok(text.to_std_string_lossy().into_bytes());
     }

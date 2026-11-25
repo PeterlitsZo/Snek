@@ -87,7 +87,12 @@ export declare const Buffer: {
   from(value: string | ArrayBuffer | Uint8Array<ArrayBuffer>): Buffer;
 };
 
-export interface S3ClientOptions {
+export interface S3RequestOptions {
+  /** Positive safe integer milliseconds; defaults to the client timeout. */
+  timeoutMs?: number;
+}
+
+export interface S3ClientOptions extends S3RequestOptions {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
@@ -100,25 +105,47 @@ export interface S3ClientOptions {
 
 export interface S3PresignOptions {
   /** Defaults to "GET". */
-  method?: "GET" | "PUT";
+  method?: "GET" | "PUT" | "HEAD" | "DELETE";
   /** Integer seconds from 1 to 604800. Defaults to 86400 (24 hours). */
   expiresIn?: number;
 }
 
-export interface S3WriteOptions {
+export interface S3WriteOptions extends S3RequestOptions {
+  ifNoneMatch?: "*";
+  metadata?: Record<string, string>;
+  contentEncoding?: string;
+  contentDisposition?: string;
+  cacheControl?: string;
   /** Stored Content-Type; defaults to "application/octet-stream". */
   type?: string;
 }
 
+export interface S3Stat {
+  size: number;
+  type: string;
+  etag: string;
+  lastModified: Date;
+  metadata: Record<string, string>;
+  contentEncoding?: string;
+  contentDisposition?: string;
+  cacheControl?: string;
+}
+
+export type S3WriteData = string | Uint8Array<ArrayBuffer> | ArrayBuffer | Blob;
+
 export interface S3File {
-  /** Fresh GET, buffered in memory and decoded as UTF-8 with replacement. */
-  text(): Promise<string>;
-  /** Fresh GET parsed as JSON. Invalid JSON rejects with SyntaxError. */
-  json<T = unknown>(): Promise<T>;
-  /** Fresh GET, returning an independent ArrayBuffer. */
-  arrayBuffer(): Promise<ArrayBuffer>;
-  /** One PUT replacing the object. Snapshots input and resolves to its byte count. */
-  write(data: string | Uint8Array<ArrayBuffer>, options?: S3WriteOptions): Promise<number>;
+  text(options?: S3RequestOptions): Promise<string>;
+  json<T = unknown>(options?: S3RequestOptions): Promise<T>;
+  arrayBuffer(options?: S3RequestOptions): Promise<ArrayBuffer>;
+  bytes(options?: S3RequestOptions): Promise<Uint8Array<ArrayBuffer>>;
+  blob(options?: S3RequestOptions): Promise<Blob>;
+  /** One PUT; inputs are snapshotted. Conditional writes are never retried automatically. */
+  write(data: S3WriteData, options?: S3WriteOptions): Promise<number>;
+  stat(options?: S3RequestOptions): Promise<S3Stat>;
+  /** Only HTTP 404 becomes false; other failures reject. */
+  exists(options?: S3RequestOptions): Promise<boolean>;
+  delete(options?: S3RequestOptions): Promise<void>;
+  presign(options?: S3PresignOptions): string;
 }
 
 /** Explicitly configured, path-style S3 client. No environment credential lookup. */
@@ -126,6 +153,10 @@ export declare class S3Client {
   constructor(options: S3ClientOptions);
   /** Creates a lazy reference without I/O; keys contain 1–1024 UTF-8 bytes. */
   file(key: string): S3File;
+  write(key: string, data: S3WriteData, options?: S3WriteOptions): Promise<number>;
+  stat(key: string, options?: S3RequestOptions): Promise<S3Stat>;
+  exists(key: string, options?: S3RequestOptions): Promise<boolean>;
+  delete(key: string, options?: S3RequestOptions): Promise<void>;
   /** Signs locally and synchronously, without I/O. */
   presign(key: string, options?: S3PresignOptions): string;
 }
@@ -133,6 +164,8 @@ export declare class S3Client {
 /** Read/write service and transport errors. Fields depend on the response. */
 export interface S3Error extends Error {
   name: "S3Error";
+  operation?: string;
+  key?: string;
   status?: number;
   code?: string;
   requestId?: string;
