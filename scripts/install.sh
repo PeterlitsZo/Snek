@@ -32,7 +32,7 @@ validate_tag() {
 
 download() {
   local -a display=(--silent --show-error)
-  if [ -t 2 ]; then
+  if [ "${3:-}" = progress ] && [ -t 2 ]; then
     display=(--progress-bar --show-error)
   fi
 
@@ -203,6 +203,7 @@ main() {
   trap 'exit 130' INT
   trap 'exit 143' TERM
   if [ -z "$release_tag" ]; then
+    printf 'Checking the latest Snek release...\n'
     download "$release_base/LATEST" "$tmpdir/LATEST"
     release_tag="$(cat "$tmpdir/LATEST")"
     validate_tag "$release_tag"
@@ -210,9 +211,10 @@ main() {
   archive="snek-${asset}.tar.gz"
   release_url="$release_base/$release_tag"
   printf 'Downloading Snek %s for %s\n' "$release_tag" "$asset"
-  download "$release_url/$archive" "$tmpdir/$archive"
+  download "$release_url/$archive" "$tmpdir/$archive" progress
   download "$release_url/SHA256SUMS" "$tmpdir/SHA256SUMS"
 
+  printf 'Verifying archive checksum...\n'
   verify_archive "$tmpdir/$archive" "$tmpdir/SHA256SUMS"
   install_binary "$tmpdir/$archive"
 
