@@ -86,6 +86,7 @@ impl ModuleLoader for SnekModuleLoader {
             &[
                 js_string!("file"),
                 js_string!("argv"),
+                js_string!("process"),
                 js_string!("Cli"),
                 js_string!("$"),
                 js_string!("S3Client"),
@@ -127,6 +128,9 @@ impl ModuleLoader for SnekModuleLoader {
                     .length(1)
                     .build();
                     module.set_export(&js_string!("file"), file.into())?;
+
+                    let process = super::modules::process::create(captures.0.clone(), context)?;
+                    module.set_export(&js_string!("process"), process)?;
 
                     // Export the functions and others.
                     module.set_export(&js_string!("argv"), captures.0.clone())?;

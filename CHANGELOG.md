@@ -4,13 +4,20 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- Support CAC-style CLI commands, aliases, positional arguments, command options,
-  and synchronous or asynchronous actions.
+- Replace the Boa global `process` with `import { process } from "snek"`.
+  Add process metadata, shared working-directory changes, runtime-local mutable
+  environment variables inherited by child commands, and graceful `exitCode`.
+  The existing `argv` export shares the same array as `process.argv`.
+
+### Added
 
 - Add lazy `file()` references with asynchronous text, JSON, binary, and Blob
   reads, overwrite and append writes, and existence checks.
+
+- Support CAC-style CLI commands, aliases, positional arguments, command options,
+  and synchronous or asynchronous actions.
 
 - Support `import.meta.dir`, `file`, `path`, and `url` with TypeScript
   declarations.

@@ -2,12 +2,13 @@ use std::{cell::RefCell, path::Path, rc::Rc};
 
 use anyhow::{Result, anyhow, bail};
 use boa_engine::{Context, Module, Source, builtins::promise::PromiseState, job::JobExecutor};
-use boa_runtime::extensions::{ConsoleExtension, FetchExtension, ProcessExtension};
+use boa_runtime::extensions::{ConsoleExtension, FetchExtension};
 
 mod fetch;
 mod jobs;
 mod module_loader;
 mod modules;
+mod state;
 
 use jobs::SnekJobExecutor;
 use module_loader::SnekModuleLoader;
@@ -18,7 +19,7 @@ pub(crate) fn execute(
     script: &Path,
     javascript: &str,
     argv: Vec<String>,
-) -> Result<()> {
+) -> Result<u8> {
     // Build the tokio runtime.
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -35,15 +36,13 @@ pub(crate) fn execute(
         .build()
         .map_err(|error| anyhow!("runtime initialization failed: {error}"))?;
 
-    context.insert_data(
-        modules::shell::ShellEnvironment::new()
-            .map_err(|error| anyhow!("shell directory initialization failed: {error}"))?,
-    );
+    let state = state::RuntimeState::new()?;
+    context.insert_data(modules::shell::ShellEnvironment::new(state.clone()));
+    context.insert_data(state.clone());
 
     boa_runtime::register(
         (
             ConsoleExtension::default(),
-            ProcessExtension,
             FetchExtension(fetch::HttpFetcher::new()?),
         ),
         None,
@@ -68,7 +67,12 @@ pub(crate) fn execute(
     // Check the state.
     match completion.state() {
         PromiseState::Fulfilled(_) => {
-            modules::cli::check_actions(&context).map_err(|error| anyhow!("{error}"))
+            modules::cli::check_actions(&context).map_err(|error| anyhow!("{error}"))?;
+            Ok(state
+                .0
+                .lock()
+                .map_err(|_| anyhow!("process state lock poisoned"))?
+                .exit_code)
         }
         PromiseState::Rejected(error) => {
             let error = error

@@ -194,11 +194,6 @@ declare global {
     path: string;
     url: string;
   }
-
-  const process: {
-    cwd(): string;
-    env: Record<string, string | undefined>;
-  };
 }
 
 /** Create a lazy local-file reference, resolving relative paths now. */
@@ -223,3 +218,19 @@ export interface FileError extends Error {
   path: string;
   code: string;
 }
+
+export interface Process {
+  readonly argv: string[];
+  readonly execPath: string;
+  readonly pid: number;
+  readonly platform: string;
+  readonly arch: string;
+  readonly version: string;
+  readonly env: Record<string, string | undefined>;
+  cwd(): string;
+  chdir(path: string): void;
+  /** Integer from 0 to 255; applied after pending work completes. */
+  exitCode: number;
+}
+
+export declare const process: Process;

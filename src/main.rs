@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 fn main() -> ExitCode {
     let args = cli::Args::from_env();
     match run(args) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => ExitCode::from(code),
         Err(error) => {
             eprintln!("error: {error:#}");
             ExitCode::FAILURE
@@ -17,7 +17,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(args: cli::Args) -> Result<()> {
+fn run(args: cli::Args) -> Result<u8> {
     let path = &args.script;
     let source = fs::read_to_string(path)
         .with_context(|| format!("read failed for '{}'", path.display()))?;
