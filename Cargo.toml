@@ -1,6 +1,6 @@
 [package]
 name = "snek"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 edition = "2024"
 rust-version = "1.96"
 description = "A collection of practical utilities with a TypeScript scripting runtime"
