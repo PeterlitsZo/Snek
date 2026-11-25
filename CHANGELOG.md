@@ -6,6 +6,9 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Add lazy `file()` references with asynchronous text, JSON, binary, and Blob
+  reads, overwrite and append writes, and existence checks.
+
 - Support `import.meta.dir`, `file`, `path`, and `url` with TypeScript
   declarations.
 

@@ -188,3 +188,26 @@ declare global {
     env: Record<string, string | undefined>;
   };
 }
+
+/** Create a lazy local-file reference, resolving relative paths now. */
+export declare function file(path: string): LocalFile;
+
+export interface LocalFile {
+  text(): Promise<string>;
+  json<T = unknown>(): Promise<T>;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  blob(): Promise<Blob>;
+  /** Create or replace the file; return bytes written. Does not create parents. */
+  write(data: string | Uint8Array<ArrayBuffer>): Promise<number>;
+  /** Create or append; return bytes written. Does not create parents. */
+  append(data: string | Uint8Array<ArrayBuffer>): Promise<number>;
+  /** False for missing paths; directories and other filesystem errors reject. */
+  exists(): Promise<boolean>;
+}
+
+export interface FileError extends Error {
+  name: "FileError";
+  operation: string;
+  path: string;
+  code: string;
+}

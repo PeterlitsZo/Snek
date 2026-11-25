@@ -84,6 +84,7 @@ impl ModuleLoader for SnekModuleLoader {
         // Make the snek module.
         let module = Module::synthetic(
             &[
+                js_string!("file"),
                 js_string!("argv"),
                 js_string!("Cli"),
                 js_string!("$"),
@@ -117,6 +118,15 @@ impl ModuleLoader for SnekModuleLoader {
                         captures.1.clone(),
                         context,
                     )?;
+
+                    let file = FunctionObjectBuilder::new(
+                        context.realm(),
+                        NativeFunction::from_fn_ptr(super::modules::file::file),
+                    )
+                    .name(js_string!("file"))
+                    .length(1)
+                    .build();
+                    module.set_export(&js_string!("file"), file.into())?;
 
                     // Export the functions and others.
                     module.set_export(&js_string!("argv"), captures.0.clone())?;
