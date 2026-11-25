@@ -1,6 +1,6 @@
 {
   "name": "@peterlits/snek",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha.3",
   "description": "TypeScript type declarations for the Snek runtime",
   "types": "./index.d.ts",
   "files": [
