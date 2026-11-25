@@ -4,8 +4,8 @@
 
 - Use the user's language for conversations and plans.
 - Use English for code and other implementation artifacts.
-- Use only open-source third-party dependencies; do not introduce private libraries or repositories.
 - Do not write unit tests and document until user ask you to do so.
+- ALWAYS match code style.
 
 ## Plans
 
@@ -28,3 +28,8 @@ important change (for example, if the project includes both a refactor and a
 documentation update, the subject should describe the refactor rather than the
 documentation update). The subject MUST end with an English full stop, and its
 first letter MUST be capitalized.
+
+## Keep the changelog
+
+When you add new feature or fix bug, update the `CHANGELOG.md` and `ROADMAP.md`
+(if needed).
