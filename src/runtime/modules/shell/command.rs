@@ -7,7 +7,7 @@ use boa_engine::{
 use boa_gc::{Finalize, Trace};
 
 use super::{
-    lines, output,
+    ShellEnvironment, lines, output,
     process::{OutputMode, run_shell},
 };
 
@@ -15,6 +15,8 @@ use super::{
 #[derive(Trace, Finalize, JsData)]
 struct ShellCommand {
     state: CommandState,
+    #[unsafe_ignore_trace]
+    environment: ShellEnvironment,
 }
 
 #[derive(Trace, Finalize)]
@@ -100,10 +102,11 @@ fn execution(this: &JsValue, requested: OutputMode, context: &mut Context) -> Js
     let CommandState::Pending(input) = &command.state else {
         unreachable!()
     };
+    let environment = command.environment.clone();
     let promise = match input.clone() {
         Ok(words) => JsPromise::from_async_fn(
             async move |_| {
-                let bytes = run_shell(words, requested).await?;
+                let bytes = run_shell(words, requested, environment).await?;
                 Ok(output::captured(bytes))
             },
             context,
@@ -166,7 +169,7 @@ fn command_lines(this: &JsValue, _: &[JsValue], context: &mut Context) -> JsResu
             .with_message("lines() requires an unconsumed command and allows only one iterator")
             .into());
     };
-    let iterator = lines::create(input.clone(), context)?;
+    let iterator = lines::create(input.clone(), command.environment.clone(), context)?;
     command.state = CommandState::Streaming(iterator.clone());
     Ok(iterator.into())
 }
@@ -213,7 +216,11 @@ fn command_finally(this: &JsValue, args: &[JsValue], context: &mut Context) -> J
 }
 
 /// Wrap parsed arguments or a parsing error in a lazy command without starting a process.
-pub(super) fn create(input: JsResult<Vec<String>>, context: &mut Context) -> JsResult<JsValue> {
+pub(super) fn create(
+    input: JsResult<Vec<String>>,
+    environment: ShellEnvironment,
+    context: &mut Context,
+) -> JsResult<JsValue> {
     // Register the class once per realm so commands share its prototype and methods.
     if context.realm().get_class::<ShellCommand>().is_none() {
         let mut builder = ClassBuilder::new::<ShellCommand>(context);
@@ -223,5 +230,5 @@ pub(super) fn create(input: JsResult<Vec<String>>, context: &mut Context) -> JsR
     }
     // Keep the input until the first await or read.
     let state = CommandState::Pending(input);
-    Ok(ShellCommand::from_data(ShellCommand { state }, context)?.into())
+    Ok(ShellCommand::from_data(ShellCommand { state, environment }, context)?.into())
 }

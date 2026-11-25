@@ -9,7 +9,7 @@ use boa_engine::{
 };
 use boa_gc::{Finalize, Trace};
 
-use super::{line_process::LineProcess, shell_error};
+use super::{ShellEnvironment, line_process::LineProcess, shell_error};
 
 /// One iterator owns the stream; command completion observes the same process.
 #[derive(Clone, Trace, Finalize, JsData)]
@@ -60,7 +60,11 @@ impl Class for LineIterator {
     }
 }
 
-pub(super) fn create(input: JsResult<Vec<String>>, context: &mut Context) -> JsResult<JsObject> {
+pub(super) fn create(
+    input: JsResult<Vec<String>>,
+    environment: ShellEnvironment,
+    context: &mut Context,
+) -> JsResult<JsObject> {
     if context.realm().get_class::<LineIterator>().is_none() {
         let mut builder = ClassBuilder::new::<LineIterator>(context);
         LineIterator::init(&mut builder)?;
@@ -68,7 +72,7 @@ pub(super) fn create(input: JsResult<Vec<String>>, context: &mut Context) -> JsR
         context.realm().register_class::<LineIterator>(class);
     }
     let (process, error) = match input {
-        Ok(words) => (Some(Rc::new(LineProcess::new(words))), None),
+        Ok(words) => (Some(Rc::new(LineProcess::new(words, environment))), None),
         Err(error) => (None, Some(error)),
     };
     LineIterator::from_data(

@@ -30,6 +30,11 @@ pub(crate) fn execute(path: &Path, javascript: &str, argv: Vec<String>) -> Resul
         .build()
         .map_err(|error| anyhow!("runtime initialization failed: {error}"))?;
 
+    context.insert_data(
+        modules::shell::ShellEnvironment::new()
+            .map_err(|error| anyhow!("shell directory initialization failed: {error}"))?,
+    );
+
     boa_runtime::register(
         (
             ConsoleExtension::default(),

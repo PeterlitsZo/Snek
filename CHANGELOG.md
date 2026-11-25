@@ -7,6 +7,7 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Add npm package `@peterlits/snek`.
+- Support `cd PATH` in `$` commands.
 
 ### Changed
 

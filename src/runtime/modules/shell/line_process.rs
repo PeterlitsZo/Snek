@@ -12,6 +12,8 @@ use tokio::{
     sync::{Mutex, mpsc, watch},
 };
 
+use super::ShellEnvironment;
+
 #[derive(Clone)]
 enum Failure {
     Cancelled,
@@ -41,6 +43,7 @@ pub(super) struct LineProcess {
 
 struct Pending {
     words: Vec<String>,
+    environment: ShellEnvironment,
     sender: mpsc::Sender<Vec<u8>>,
     status: watch::Sender<Status>,
 }
@@ -51,13 +54,14 @@ struct Reader {
 }
 
 impl LineProcess {
-    pub(super) fn new(words: Vec<String>) -> Self {
+    pub(super) fn new(words: Vec<String>, environment: ShellEnvironment) -> Self {
         let (sender, receiver) = mpsc::channel(1);
         let (cancel, _) = watch::channel(false);
         let (status_sender, status) = watch::channel(None);
         Self {
             pending: RefCell::new(Some(Pending {
                 words,
+                environment,
                 sender,
                 status: status_sender,
             })),
@@ -81,7 +85,7 @@ impl LineProcess {
         }
         let cancel = self.cancel.subscribe();
         tokio::spawn(async move {
-            let result = produce(pending.words, &pending.sender, cancel).await;
+            let result = produce(pending.words, pending.environment, &pending.sender, cancel).await;
             // Publish the outcome before closing the line queue.
             pending.status.send_replace(Some(result));
         });
@@ -182,12 +186,18 @@ async fn stop(child: &mut Child, program: &str) -> Outcome {
 /// Read at most one queued line ahead; a slow consumer applies pipe backpressure.
 async fn produce(
     words: Vec<String>,
+    environment: ShellEnvironment,
     sender: &mpsc::Sender<Vec<u8>>,
     mut cancel: watch::Receiver<bool>,
 ) -> Outcome {
+    if *cancel.borrow() {
+        return Err(Failure::Cancelled);
+    }
+    let Some(mut command) = environment.prepare(&words).map_err(Failure::Process)? else {
+        return Ok(());
+    };
     let program = &words[0];
-    let mut child = tokio::process::Command::new(program)
-        .args(&words[1..])
+    let mut child = command
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())

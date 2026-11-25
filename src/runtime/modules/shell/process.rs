@@ -2,7 +2,7 @@ use std::process::Stdio;
 
 use boa_engine::JsResult;
 
-use super::shell_error;
+use super::{ShellEnvironment, shell_error};
 
 /// Where stdout goes; fixed when the command starts. Stdin and stderr stay inherited.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -13,10 +13,16 @@ pub(super) enum OutputMode {
     Capture,
 }
 
-pub(super) async fn run_shell(words: Vec<String>, mode: OutputMode) -> JsResult<Vec<u8>> {
+pub(super) async fn run_shell(
+    words: Vec<String>,
+    mode: OutputMode,
+    environment: ShellEnvironment,
+) -> JsResult<Vec<u8>> {
+    let Some(mut command) = environment.prepare(&words).map_err(shell_error)? else {
+        return Ok(Vec::new());
+    };
     let program = &words[0];
-    let mut child = tokio::process::Command::new(program)
-        .args(&words[1..])
+    let mut child = command
         .stdin(Stdio::inherit())
         .stdout(match mode {
             OutputMode::Terminal => Stdio::inherit(),
