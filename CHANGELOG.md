@@ -4,6 +4,11 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Add `process.exit(code?)` to exit immediately with an integer code from 0 to
+  255, defaulting to `process.exitCode`, without waiting for pending work.
+
 ## [0.2.0-alpha.3] - 2026-11-25
 
 ### Added

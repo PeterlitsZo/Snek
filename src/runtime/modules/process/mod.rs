@@ -20,6 +20,18 @@ fn string(value: &JsValue) -> JsResult<String> {
         })
 }
 
+fn exit_code(value: &JsValue) -> JsResult<u8> {
+    value
+        .as_number()
+        .filter(|code| code.is_finite() && code.fract() == 0.0 && (0.0..=255.0).contains(code))
+        .map(|code| code as u8)
+        .ok_or_else(|| {
+            JsNativeError::range()
+                .with_message("exitCode must be an integer from 0 to 255")
+                .into()
+        })
+}
+
 fn host(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
     let operation = string(args.get_or_undefined(0))?;
     let state = context
@@ -49,18 +61,19 @@ fn host(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValu
         }
         "exitCode" => {
             if args.len() > 1 {
-                let code = args[1]
-                    .as_number()
-                    .filter(|code| {
-                        code.is_finite() && code.fract() == 0.0 && (0.0..=255.0).contains(code)
-                    })
-                    .ok_or_else(|| {
-                        JsNativeError::range()
-                            .with_message("exitCode must be an integer from 0 to 255")
-                    })?;
-                state.exit_code = code as u8;
+                state.exit_code = exit_code(&args[1])?;
             }
             Ok(state.exit_code.into())
+        }
+        "exit" => {
+            let value = args.get_or_undefined(1);
+            let code = if value.is_undefined() {
+                state.exit_code
+            } else {
+                exit_code(value)?
+            };
+            drop(state);
+            std::process::exit(i32::from(code));
         }
         "keys" => Ok(JsArray::from_iter(
             state.variables.iter().filter_map(|(key, value)| {

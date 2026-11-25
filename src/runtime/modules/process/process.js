@@ -25,6 +25,7 @@
   Object.defineProperties(process, {
     cwd: { value: () => host("cwd"), enumerable: true },
     chdir: { value: path => { host("chdir", path); }, enumerable: true },
+    exit: { value: code => { host("exit", code); }, enumerable: true },
     exitCode: { get: () => host("exitCode"), set: value => { host("exitCode", value); }, enumerable: true },
   });
   return process;

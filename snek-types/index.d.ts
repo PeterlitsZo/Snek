@@ -262,6 +262,7 @@ export interface Process {
   readonly env: Record<string, string | undefined>;
   cwd(): string;
   chdir(path: string): void;
+  exit(code?: number): never;
   /** Integer from 0 to 255; applied after pending work completes. */
   exitCode: number;
 }
