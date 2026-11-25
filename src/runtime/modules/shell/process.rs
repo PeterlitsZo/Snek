@@ -2,7 +2,7 @@ use std::process::Stdio;
 
 use boa_engine::JsResult;
 
-use super::{ShellEnvironment, shell_error};
+use super::{ShellEnvironment, environment::PreparedCommand, shell_error};
 
 /// Output routing, fixed when the command starts. Stdin stays inherited.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -27,15 +27,18 @@ pub(super) async fn run_shell(
     mode: OutputMode,
     environment: ShellEnvironment,
 ) -> JsResult<ProcessOutput> {
-    let Some(mut command) = environment.prepare(&words).map_err(shell_error)? else {
-        return Ok(ProcessOutput {
-            stdout: Vec::new(),
-            stderr: Vec::new(),
-            exit_code: Some(0),
-            failure: None,
-        });
-    };
     let program = &words[0];
+    let mut command = match environment.prepare(&words).map_err(shell_error)? {
+        PreparedCommand::External(command) => command,
+        PreparedCommand::Builtin(code) => {
+            return Ok(ProcessOutput {
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+                exit_code: Some(i32::from(code)),
+                failure: (code != 0).then(|| format!("'{program}' failed: exit status: {code}")),
+            });
+        }
+    };
     let mut child = command
         .stdin(Stdio::inherit())
         .stdout(match mode {

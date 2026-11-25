@@ -11,6 +11,11 @@ pub(in crate::runtime) struct ShellEnvironment {
     pub(super) variables: BTreeMap<String, String>,
 }
 
+pub(super) enum PreparedCommand {
+    External(Command),
+    Builtin(u8),
+}
+
 impl ShellEnvironment {
     pub(in crate::runtime) fn new(state: RuntimeState) -> Self {
         Self {
@@ -20,7 +25,7 @@ impl ShellEnvironment {
     }
 
     /// Execute a builtin or prepare a child with a snapshot of the current directory.
-    pub(super) fn prepare(&self, words: &[String]) -> Result<Option<Command>, String> {
+    pub(super) fn prepare(&self, words: &[String]) -> Result<PreparedCommand, String> {
         let mut state = self
             .state
             .0
@@ -34,7 +39,20 @@ impl ShellEnvironment {
             state
                 .chdir(Path::new(&words[1]))
                 .map_err(|error| format!("could not cd to '{}': {error}", words[1]))?;
-            return Ok(None);
+            return Ok(PreparedCommand::Builtin(0));
+        }
+
+        if program == "exit" {
+            let code = match &words[1..] {
+                [] => 0,
+                [value] if !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit()) => {
+                    value
+                        .parse::<u8>()
+                        .map_err(|_| "usage: exit [CODE] (integer from 0 to 255)")?
+                }
+                _ => return Err("usage: exit [CODE] (integer from 0 to 255)".into()),
+            };
+            return Ok(PreparedCommand::Builtin(code));
         }
 
         // Resolve explicit relative executable paths ourselves: platform behavior
@@ -53,6 +71,6 @@ impl ShellEnvironment {
             .env_clear()
             .envs(&state.variables)
             .envs(&self.variables);
-        Ok(Some(command))
+        Ok(PreparedCommand::External(command))
     }
 }

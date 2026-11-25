@@ -6,6 +6,9 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Support the `exit` builtin for `$` with exit codes from 0 to 255, including
+  captured output and line streaming, without terminating the script.
+
 - Add `process.exit(code?)` to exit immediately with an integer code from 0 to
   255, defaulting to `process.exitCode`, without waiting for pending work.
 

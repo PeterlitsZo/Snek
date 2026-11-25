@@ -11,7 +11,7 @@
 - [x] Support the `.env()` method for `$`.
 - [x] Support the global `process` object.
 - [x] Support get the version of Snek.
-- [ ] Support the `exit` command for `$`.
+- [x] Support the `exit` command for `$`.
 - [x] Support `process.exit()` for immediate process termination.
 - [x] The `process` object should be export by `snek` but not a global object.
 - [x] Support the command.

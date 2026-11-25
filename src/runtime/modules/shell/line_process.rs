@@ -12,7 +12,7 @@ use tokio::{
     sync::{Mutex, mpsc, watch},
 };
 
-use super::ShellEnvironment;
+use super::{ShellEnvironment, environment::PreparedCommand};
 
 #[derive(Clone)]
 enum Failure {
@@ -193,10 +193,16 @@ async fn produce(
     if *cancel.borrow() {
         return Err(Failure::Cancelled);
     }
-    let Some(mut command) = environment.prepare(&words).map_err(Failure::Process)? else {
-        return Ok(());
-    };
     let program = &words[0];
+    let mut command = match environment.prepare(&words).map_err(Failure::Process)? {
+        PreparedCommand::External(command) => command,
+        PreparedCommand::Builtin(0) => return Ok(()),
+        PreparedCommand::Builtin(code) => {
+            return Err(Failure::Process(format!(
+                "'{program}' failed: exit status: {code}"
+            )));
+        }
+    };
     let mut child = command
         .stdin(Stdio::inherit())
         .stdout(Stdio::piped())
