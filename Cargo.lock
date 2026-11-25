@@ -2543,6 +2543,7 @@ dependencies = [
  "rustls",
  "serde",
  "tokio",
+ "url",
 ]
 
 [[package]]

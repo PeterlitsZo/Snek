@@ -176,6 +176,13 @@ export declare class Cli {
 }
 
 declare global {
+  interface ImportMeta {
+    dir: string;
+    file: string;
+    path: string;
+    url: string;
+  }
+
   const process: {
     cwd(): string;
     env: Record<string, string | undefined>;

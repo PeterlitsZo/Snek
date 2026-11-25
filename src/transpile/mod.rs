@@ -37,7 +37,6 @@ pub(crate) fn transpile(path: &Path, source: &str) -> Result<String> {
                 let is_other_import_node = matches!(
                     kind,
                     AstKind::ImportExpression(_)
-                        | AstKind::ImportMeta(_)
                         | AstKind::TSImportEqualsDeclaration(_)
                         | AstKind::TSImportType(_)
                 );

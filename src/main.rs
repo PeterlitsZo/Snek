@@ -30,6 +30,6 @@ fn run(args: cli::Args) -> Result<()> {
         script.to_string_lossy().into_owned(),
     ];
     argv.extend(args.argv);
-    runtime::execute(path, &javascript, argv)
+    runtime::execute(path, &script, &javascript, argv)
         .with_context(|| format!("execution failed for '{}'", path.display()))
 }

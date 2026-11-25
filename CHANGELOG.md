@@ -4,6 +4,11 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Support `import.meta.dir`, `file`, `path`, and `url` with TypeScript
+  declarations.
+
 ## [0.2.0-alpha.1] - 2026-11-25
 
 ### Added

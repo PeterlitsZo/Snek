@@ -26,6 +26,7 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls-no-p
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt", "process", "time", "net", "io-util", "sync"] }
+url = "2"
 
 [lints.rust]
 unsafe_code = "forbid"

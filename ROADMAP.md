@@ -6,7 +6,7 @@
 - [x] Support the `cd` command for `$`.
 - [x] Support the `.nothrow()` method, and `exitCode` field for `$`.
 - [ ] A better reference document.
-- [ ] Support `import.meta.*` (like `dir`, `file`, `path`, etc.)
+- [x] Support `import.meta.*` (like `dir`, `file`, `path`, etc.)
 - [ ] Support File I/O.
 - [x] Support the `.env()` method for `$`.
 - [x] Support the global `process` object.

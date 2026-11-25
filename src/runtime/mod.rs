@@ -13,7 +13,12 @@ use jobs::SnekJobExecutor;
 use module_loader::SnekModuleLoader;
 
 // Execute the JavaScript code.
-pub(crate) fn execute(path: &Path, javascript: &str, argv: Vec<String>) -> Result<()> {
+pub(crate) fn execute(
+    path: &Path,
+    script: &Path,
+    javascript: &str,
+    argv: Vec<String>,
+) -> Result<()> {
     // Build the tokio runtime.
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -25,7 +30,7 @@ pub(crate) fn execute(path: &Path, javascript: &str, argv: Vec<String>) -> Resul
 
     // Build the context to execute the JavaScript code.
     let mut context = Context::builder()
-        .module_loader(Rc::new(SnekModuleLoader::new(path, argv)))
+        .module_loader(Rc::new(SnekModuleLoader::new(path, script, argv)?))
         .job_executor(jobs.clone())
         .build()
         .map_err(|error| anyhow!("runtime initialization failed: {error}"))?;
