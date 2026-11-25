@@ -267,3 +267,10 @@ export interface Process {
 }
 
 export declare const process: Process;
+
+export declare class Semver {
+  constructor(version: string);
+  bump(op: "major" | "minor" | "patch" | "release" | "alpha" | "beta" | "rc"): Semver;
+  bump(op: "premajor" | "preminor" | "prepatch", channel?: "alpha" | "beta" | "rc"): Semver;
+  toString(): string;
+}

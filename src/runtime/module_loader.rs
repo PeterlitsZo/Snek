@@ -92,6 +92,7 @@ impl ModuleLoader for SnekModuleLoader {
                 js_string!("S3Client"),
                 js_string!("Buffer"),
                 js_string!("Blob"),
+                js_string!("Semver"),
             ],
             SyntheticModuleInitializer::from_copy_closure_with_captures(
                 |module, captures, context| {
@@ -109,6 +110,8 @@ impl ModuleLoader for SnekModuleLoader {
 
                     // Build the `Blob`.
                     let blob = super::modules::blob::constructor(context)?;
+
+                    let semver = super::modules::semver::constructor(context)?;
 
                     // Build the `S3Client`.
                     let s3 = super::modules::s3::constructor(context)?;
@@ -138,6 +141,7 @@ impl ModuleLoader for SnekModuleLoader {
                     module.set_export(&js_string!("$"), function.into())?;
                     module.set_export(&js_string!("Buffer"), buffer)?;
                     module.set_export(&js_string!("Blob"), blob)?;
+                    module.set_export(&js_string!("Semver"), semver)?;
                     module.set_export(&js_string!("S3Client"), s3)
                 },
                 captures,
