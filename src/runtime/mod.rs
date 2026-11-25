@@ -2,7 +2,7 @@ use std::{cell::RefCell, path::Path, rc::Rc};
 
 use anyhow::{Result, anyhow, bail};
 use boa_engine::{Context, Module, Source, builtins::promise::PromiseState, job::JobExecutor};
-use boa_runtime::extensions::{ConsoleExtension, FetchExtension};
+use boa_runtime::extensions::{ConsoleExtension, FetchExtension, ProcessExtension};
 
 mod fetch;
 mod jobs;
@@ -38,6 +38,7 @@ pub(crate) fn execute(path: &Path, javascript: &str, argv: Vec<String>) -> Resul
     boa_runtime::register(
         (
             ConsoleExtension::default(),
+            ProcessExtension,
             FetchExtension(fetch::HttpFetcher::new()?),
         ),
         None,

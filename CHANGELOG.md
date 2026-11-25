@@ -6,6 +6,7 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Support global `process.cwd()` and `process.env` through Boa.
 - Add npm package `@peterlits/snek`.
 - Support `cd PATH` in `$` commands.
 - Support command-specific environment overrides with `.env()` on `$` commands.

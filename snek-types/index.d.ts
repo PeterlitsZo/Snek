@@ -165,3 +165,10 @@ export declare class Cli {
    */
   parse(args?: string[]): CliParseResult;
 }
+
+declare global {
+  const process: {
+    cwd(): string;
+    env: Record<string, string | undefined>;
+  };
+}
