@@ -4,6 +4,8 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0-alpha.1] - 2026-11-25
+
 ### Added
 
 - Support `.nothrow()` returning `stdout`, `stderr`, and `exitCode` for shell
@@ -23,5 +25,6 @@ Following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Initial release of Snek.
 
-[Unreleased]: https://github.com/PeterlitsZo/Snek/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/PeterlitsZo/Snek/compare/v0.2.0-alpha.1...HEAD
+[0.2.0-alpha.1]: https://github.com/PeterlitsZo/Snek/compare/v0.1.0...v0.2.0-alpha.1
 [0.1.0]: https://github.com/PeterlitsZo/Snek/releases/tag/v0.1.0
